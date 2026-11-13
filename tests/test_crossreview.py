@@ -344,6 +344,26 @@ class Scenarios(unittest.TestCase):
             with self.assertRaises(ValueError):
                 f.check_path(bad)
 
+    # 13) 실행 설정 파일
+    def test_config_file(self):
+        from crossreview import config
+        ini = os.path.join(self.root, "crossreview.ini")
+        c = config.load(ini)
+        self.assertTrue(c["created"] and os.path.isfile(ini))
+        self.assertEqual((c["lan"], c["port"], c["repo_root"], c["auth"]), (True, 8765, [], None))
+        self.assertEqual(c["out_dir"], os.path.join(self.root, "crossreview_out"))
+        with io.open(ini, "w", encoding="utf-8") as fp:
+            fp.write(u"[crossreview]\nlan = no\nport = 9000\nrepo_root = repos ; /abs/x\n"
+                     u"auth = team:pw\nopen_browser = no\n")
+        c = config.load(ini)
+        self.assertEqual((c["lan"], c["port"], c["auth"], c["open_browser"]),
+                         (False, 9000, "team:pw", False))
+        self.assertEqual(c["repo_root"], [os.path.join(self.root, "repos"), os.path.normpath("/abs/x")])
+        with io.open(ini, "w", encoding="utf-8") as fp:
+            fp.write(u"[crossreview]\nport = abc\n")
+        with self.assertRaises(ValueError):
+            config.load(ini)
+
     def test_rename_binary_and_root_commit(self):
         r = self.r
         root = r.git("rev-list", "--max-parents=0", "HEAD")

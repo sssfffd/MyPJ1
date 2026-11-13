@@ -14,27 +14,53 @@
                                           S 와 T 를 파일 단위로 짝지어 출력
 ```
 
-## 빌드 / 실행
+## 실행 (이것 하나로 끝)
 
-빌드는 한 줄이고 외부 패키지가 필요 없습니다 (표준 라이브러리 `zipapp`).
-
-```bash
-python build.py          # -> dist/crossreview.pyz (단일 파일), dist/crossreview.bat
-```
-
-`crossreview.pyz` 파일 하나만 복사하면 Python(3.6+)과 git 이 있는 PC 어디서든 실행됩니다.
+레포 최상단의 **`crossreview.pyz`** 하나만 있으면 됩니다 (Python 3.6+ 와 git 필요, 외부 패키지 없음).
 
 ```bash
-python crossreview.pyz                 # 인자 없이 실행 -> UI (Windows 는 crossreview.bat 더블클릭)
-python crossreview.pyz --src-... -o bundle.json     # CLI
+python crossreview.pyz          # Windows 는 crossreview.pyz 더블클릭도 가능 (python.org 설치본)
 ```
 
-빌드 없이 소스에서 바로 실행하려면 `python -m crossreview`.
+실행하면 같은 폴더의 **`crossreview.ini`** 설정대로 웹 화면이 열립니다. 처음 실행하면 기본 설정 파일이 자동으로 만들어집니다.
+옵션을 매번 줄 필요 없이 이 파일만 고치면 됩니다.
+
+```ini
+[crossreview]
+lan = yes              ; 다른 PC 에서 IP 주소로 접속 허용 (no 면 이 PC 전용)
+port = 8765
+repo_root = D:\repos   ; 화면에서 고를 수 있는 레포 폴더 (; 로 여러 개). 비우면 홈 폴더
+auth = team:비밀번호    ; 접속 로그인 (비우면 없음)
+cert =                 ; HTTPS 인증서/키 (비우면 HTTP)
+key =
+out_dir =              ; 결과 저장 폴더 (비우면 ./crossreview_out)
+llm_hook =             ; LLM 훅 파일 (비우면 ./llm_hook.py)
+open_browser = yes     ; 실행 시 이 PC 에서 브라우저 열기
+```
+
+실행하면 접속 주소가 출력됩니다.
+
+```
+crossreview 웹 서버 실행 중 (종료: Ctrl+C 또는 이 창 닫기)
+  이 PC 에서      : http://127.0.0.1:8765/
+  다른 PC 에서    : http://192.168.0.15:8765/
+```
+
+명령행 옵션(`--port`, `--repo-root`, `--auth`, `--local` 등)을 주면 설정 파일보다 우선합니다.
+diff 만 JSON 으로 뽑는 CLI 사용(`--src-... --dst-...`)은 설정 파일과 무관하게 그대로 동작합니다.
+
+### 다시 빌드하기 (소스를 고쳤을 때만)
+
+```bash
+python build.py          # -> crossreview.pyz 갱신 (표준 라이브러리 zipapp)
+```
+
+빌드 없이 소스에서 바로 실행하려면 `python -m crossreview` (이때 설정 파일은 현재 폴더의 crossreview.ini).
 
 ## UI
 
 ```bash
-python crossreview.pyz                         # UI 실행 (Edge/Chrome 이 있으면 주소창 없는 앱 창으로 열림)
+python crossreview.pyz                         # UI 실행 (crossreview.ini 설정대로)
 python crossreview.pyz --src-... --dst-... --ui      # CLI 로 추출한 결과를 바로 화면으로
 python crossreview.pyz --src-... --dst-... --html report.html   # 서버 없이 열리는 HTML 1개 (공유용)
 ```
@@ -66,22 +92,14 @@ UI 는 표준 라이브러리 `http.server` 로 **127.0.0.1 에만** 뜨는 로�
 
 같은 프로그램을 서버 한 대에 띄워 두고 여러 명이 브라우저로 접속해 쓸 수 있습니다. 설치는 여전히 `crossreview.pyz` 하나입니다.
 
-```bash
-python crossreview.pyz --lan --repo-root D:\repos --auth team:비밀번호
-```
-
-실행하면 접속 주소가 출력됩니다. 다른 PC 의 브라우저에서 "다른 PC 에서" 주소를 열면 됩니다.
-
-```
-crossreview 웹 서버 실행 중 (종료: Ctrl+C 또는 이 창 닫기)
-  이 PC 에서      : http://127.0.0.1:8765/
-  다른 PC 에서    : http://192.168.0.15:8765/
-```
+`crossreview.ini` 에서 `lan = yes`(기본값), `repo_root`, `auth` 를 채우고 `python crossreview.pyz` 로 실행하면 됩니다.
+출력된 "다른 PC 에서" 주소를 다른 PC 브라우저에서 열면 됩니다. 명령행으로 지정할 때의 옵션은 아래와 같습니다.
 
 | 옵션 | 의미 |
 |---|---|
-| `--lan` | 다른 PC 에서 IP 주소로 접속 허용 (`--host 0.0.0.0` 과 같음. 특정 IP 로만 받으려면 `--host IP`) |
-| `--repo-root DIR` | 이 폴더 아래의 레포만 선택/추출 가능 (**필수**, 반복 가능) |
+| `--lan` / `--local` | 다른 PC 에서 IP 주소로 접속 허용 / 이 PC 에서만 (설정 파일의 `lan` 보다 우선. 특정 IP 로만 받으려면 `--host IP`) |
+| `--config FILE` | 다른 설정 파일 사용 |
+| `--repo-root DIR` | 이 폴더 아래의 레포만 선택/추출 가능 (반복 가능. 비우면 홈 폴더) |
 | `--auth 사용자:비밀번호` | 접속 시 로그인 요구 (권장) |
 | `--cert FILE --key FILE` | HTTPS (권장, 없으면 평문 HTTP) |
 | `--port N` | 포트 (기본 8765) |
@@ -255,7 +273,9 @@ crossreview/
   llm.py       프롬프트 조립, llm_hook.py 호출
   ui.html      UI 화면 (단일 파일, 외부 리소스 없음)
 llm_hook_example.py   LLM 훅 예시
-build.py       단일 파일(dist/crossreview.pyz) 빌드
+build.py       crossreview.pyz 빌드
+crossreview.pyz   빌드된 실행 파일 (이것만 배포)
+crossreview/config.py  crossreview.ini 처리
 tests/         임시 git 레포로 위 시나리오를 실제 검증
 ```
 

@@ -25,6 +25,11 @@ UI:
   python -m crossreview ... --ui        추출 결과를 바로 UI 로 확인
   python -m crossreview ... --html r.html   서버 없이 열 수 있는 HTML 리포트
 
+실행 설정:
+  인자 없이 실행하면 crossreview.pyz 옆의 crossreview.ini 대로 웹 화면이 열린다
+  (처음 실행하면 기본 설정 파일을 만든다. 기본: 다른 PC 에서 IP 로 접속 허용, 포트 8765).
+  명령행 옵션을 주면 그 값이 설정 파일보다 우선한다.
+
 웹 서버 모드 (서버 한 대에 띄우고 팀이 브라우저로 접속):
   python -m crossreview --lan --repo-root /srv/repos --auth team:비밀번호
   -> 실행하면 다른 PC 에서 접속할 주소(http://IP:포트/)가 출력된다
@@ -79,14 +84,17 @@ def build_parser():
                    help="브라우저로 바로 열 수 있는 단일 HTML 리포트 출력")
     p.add_argument("--ui", action="store_true",
                    help="로컬 UI 실행 (인자 없이 실행해도 UI 가 뜬다)")
-    p.add_argument("--port", type=int, default=8765, help="UI 포트 (기본 8765, 127.0.0.1 전용)")
+    p.add_argument("--port", type=int, help="UI 포트 (기본: crossreview.ini, 없으면 8765)")
     p.add_argument("--no-browser", action="store_true", help="UI 실행 시 브라우저를 열지 않음")
     p.add_argument("--out-dir", metavar="DIR",
                    help="결과 한 벌 저장: bundle.json, report.html, diffs/*.diff "
                         "(UI 에서는 저장 폴더의 기본값, 기본 ./crossreview_out)")
     p.add_argument("--llm-hook", metavar="FILE", help="LLM 훅 파일 (기본: ./llm_hook.py)")
     w = p.add_argument_group("웹 서버 모드 (팀이 주소로 접속)")
-    w.add_argument("--host", default="127.0.0.1", metavar="ADDR",
+    w.add_argument("--local", action="store_true",
+                   help="이 PC 에서만 접속 (crossreview.ini 의 lan = yes 를 무시)")
+    w.add_argument("--config", metavar="FILE", help="설정 파일 (기본: crossreview.pyz 옆의 crossreview.ini)")
+    w.add_argument("--host", metavar="ADDR",
                    help="접속을 받을 주소. 기본 127.0.0.1(내 PC 전용), 0.0.0.0 이면 다른 PC 에서 접속 가능")
     w.add_argument("--lan", action="store_true",
                    help="다른 PC 에서 IP 주소로 접속 허용 (--host 0.0.0.0 과 동일)")
@@ -111,15 +119,60 @@ def _dump(obj, path):
 SIDE_KEYS = ("head", "base", "commit", "range", "grep")
 
 
+def _apply_config(args, cli_given):
+    """crossreview.ini 값으로 지정되지 않은 서버 옵션을 채운다. 오류 메시지 또는 None."""
+    from . import config
+    try:
+        cfg = config.load(args.config)
+    except (ValueError, OSError) as e:
+        return str(e)
+    if cfg["created"]:
+        print("설정 파일을 만들었습니다: %s" % cfg["path"], file=sys.stderr)
+    print("설정 파일: %s" % cfg["path"], file=sys.stderr)
+    if args.local:
+        args.host = "127.0.0.1"
+    elif args.lan:
+        args.host = args.host or "0.0.0.0"
+    elif not args.host:
+        args.host = "0.0.0.0" if cfg["lan"] else "127.0.0.1"
+    if args.port is None:
+        args.port = cfg["port"]
+    for k in ("auth", "cert", "key", "out_dir", "llm_hook"):
+        if getattr(args, k) is None:
+            setattr(args, k, cfg[k])
+    if not args.repo_root:
+        args.repo_root = cfg["repo_root"]
+    if not args.repo_root and args.host not in ("127.0.0.1", "localhost", "::1"):
+        args.repo_root = [os.path.expanduser("~")]
+        print("repo_root 가 비어 있어 홈 폴더(%s)를 사용합니다. "
+              "crossreview.ini 에서 레포 폴더로 지정하는 것을 권장합니다." % args.repo_root[0],
+              file=sys.stderr)
+    if not cfg["open_browser"] and not cli_given:
+        args.no_browser = True
+    return None
+
+
+def _pause(code, argv):
+    """더블클릭으로 실행했을 때 오류 창이 바로 닫히지 않게 한다."""
+    if not argv and code and sys.stdin and sys.stdin.isatty():
+        try:
+            input("엔터를 누르면 닫힙니다...")
+        except (EOFError, KeyboardInterrupt):
+            pass
+    return code
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     args = build_parser().parse_args(argv)
     has_spec = any(getattr(args, "%s_%s" % (p, k)) for p in ("src", "dst") for k in SIDE_KEYS)
-    if args.lan and args.host == "127.0.0.1":
-        args.host = "0.0.0.0"
-    if not argv or args.host != "127.0.0.1":
-        args.ui = True                      # 인자 없이 실행(더블클릭) 또는 --host -> UI
+    if not argv or args.ui or args.lan or args.host:
+        args.ui = True                      # 인자 없이 실행(더블클릭) 또는 서버 관련 옵션 -> UI
+        err = _apply_config(args, cli_given=bool(argv))
+        if err:
+            print("error: %s" % err, file=sys.stderr)
+            return _pause(1, argv)
 
     def ui(bundle=None):
         from .server import serve
@@ -130,7 +183,7 @@ def main(argv=None):
                          cert=args.cert, key=args.key)
         except (ValueError, OSError) as e:
             print("error: %s" % e, file=sys.stderr)
-            return 1
+            return _pause(1, argv)
 
     if args.ui and not has_spec:
         return ui()

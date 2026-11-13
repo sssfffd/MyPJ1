@@ -2,8 +2,8 @@ __pycache__/
 *.pyc
 /out*.json
 /split/
-dist/
 *.html
 !crossreview/ui.html
 crossreview_out/
 /llm_hook.py
+/crossreview.ini
