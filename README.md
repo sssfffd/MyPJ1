@@ -14,7 +14,39 @@
                                           S 와 T 를 파일 단위로 짝지어 출력
 ```
 
-## 사용법
+## 빌드 / 실행
+
+빌드는 한 줄이고 외부 패키지가 필요 없습니다 (표준 라이브러리 `zipapp`).
+
+```bash
+python build.py          # -> dist/crossreview.pyz (단일 파일), dist/crossreview.bat
+```
+
+`crossreview.pyz` 파일 하나만 복사하면 Python(3.6+)과 git 이 있는 PC 어디서든 실행됩니다.
+
+```bash
+python crossreview.pyz                 # 인자 없이 실행 -> UI (Windows 는 crossreview.bat 더블클릭)
+python crossreview.pyz --src-... -o bundle.json     # CLI
+```
+
+빌드 없이 소스에서 바로 실행하려면 `python -m crossreview`.
+
+## UI
+
+```bash
+python crossreview.pyz                         # 화면에서 레포/브랜치 입력 후 "diff 추출"
+python crossreview.pyz --src-... --dst-... --ui      # 추출 결과를 바로 화면으로
+python crossreview.pyz --src-... --dst-... --html report.html   # 서버 없이 열리는 HTML 1개 (공유용)
+```
+
+- 왼쪽: 파일 짝 목록 — `동일` / 유사도 % / `원본만`(이식 누락 의심) / `대상만`, 필터와 검색
+- 오른쪽: 원본 diff 와 대상 diff 를 나란히 표시. **반대쪽에 없는 변경 라인은 노란색**으로 강조
+- "구간 정보": 어떤 구간을 어떻게 잡았는지(mode, 커밋 목록, note, warning) — warning 이 있으면 자동으로 펼쳐짐
+- "JSON 저장" 으로 bundle 저장, "JSON 열기" 로 예전에 뽑은 bundle 다시 보기, ↑/↓ 또는 j/k 로 파일 이동
+- UI 는 표준 라이브러리 `http.server` 로 **127.0.0.1 에만** 뜨는 로컬 화면입니다 (외부 접속 불가, 외부 리소스 로드 없음, 요청 토큰/Host 검사).
+  포트는 `--port` (기본 8765, 사용 중이면 빈 포트 자동 선택).
+
+## 사용법 (CLI)
 
 ```bash
 # 서로 다른 레포(버전)의 PR 끼리 비교
@@ -134,6 +166,9 @@ crossreview/
   pairing.py   src/dst 파일 짝짓기, 동일 여부/유사도
   bundle.py    bundle 조립, LLM 용 헬퍼
   cli.py       CLI
+  server.py    로컬 UI 서버, HTML 리포트 출력
+  ui.html      UI 화면 (단일 파일, 외부 리소스 없음)
+build.py       단일 파일(dist/crossreview.pyz) 빌드
 tests/         임시 git 레포로 위 시나리오를 실제 검증
 ```
 

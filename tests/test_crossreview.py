@@ -254,6 +254,25 @@ class Scenarios(unittest.TestCase):
         self.assertEqual(len(units), 3)
         self.assertIn("+line 30 FEATURE-typo", file_patch_text(units[0][2]))
 
+    # 10) UI: 추출 요청 처리와 HTML 리포트
+    def test_ui_request_and_html(self):
+        from crossreview.server import run_request, render_html, write_html
+        r = self.r
+        r.git("checkout", "-q", "-b", "feat")
+        r.sub("app.c", "line 5\n", "line 5 </script><b>X\n"); r.commit("feature")
+        side = {"repo": r.path, "base": "main", "head": "feat"}
+        b = run_request({"src": side, "dst": side, "context": 1, "path_maps": []})
+        self.assertEqual(b["summary"]["identical"], 1)
+        html = render_html(b, token="tok")
+        self.assertIn('var TOKEN = "tok";', html)
+        self.assertNotIn("</script><b>X", html)                # 스크립트 탈출 방지
+        out = os.path.join(self.root, "r.html")
+        write_html(b, out)
+        with io.open(out, encoding="utf-8") as fp:
+            self.assertIn("var TOKEN = null;", fp.read())
+        with self.assertRaises(ResolveError):
+            run_request({"src": side, "dst": side, "path_maps": ["bad"]})
+
     def test_rename_binary_and_root_commit(self):
         r = self.r
         root = r.git("rev-list", "--max-parents=0", "HEAD")

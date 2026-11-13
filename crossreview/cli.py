@@ -20,6 +20,11 @@ EPILOG = """\
   --X-grep KEY     커밋 메시지에 KEY(이슈 번호 등)가 있는 커밋을 모두 모음
   --X-head/--X-base  PR 모드: merge-base(base, head)..head  (기본)
 
+UI:
+  python -m crossreview                 인자 없이 실행 -> 로컬 UI (브라우저)
+  python -m crossreview ... --ui        추출 결과를 바로 UI 로 확인
+  python -m crossreview ... --html r.html   서버 없이 열 수 있는 HTML 리포트
+
 예시:
   # 원본 PR(v1) 과 횡전개 PR(v2) 비교 - 서로 다른 레포
   python -m crossreview --src-repo ../v1 --src-base origin/main --src-head feature/login \\
@@ -66,6 +71,12 @@ def build_parser():
                    help="파일 짝마다 JSON 1개씩 추가 출력 (LLM 호출 단위)")
     p.add_argument("--skip-identical", action="store_true",
                    help="--split-dir 출력에서 변경 내용이 동일한 짝은 제외")
+    p.add_argument("--html", metavar="FILE",
+                   help="브라우저로 바로 열 수 있는 단일 HTML 리포트 출력")
+    p.add_argument("--ui", action="store_true",
+                   help="로컬 UI 실행 (인자 없이 실행해도 UI 가 뜬다)")
+    p.add_argument("--port", type=int, default=8765, help="UI 포트 (기본 8765, 127.0.0.1 전용)")
+    p.add_argument("--no-browser", action="store_true", help="UI 실행 시 브라우저를 열지 않음")
     p.add_argument("--strict", action="store_true", help="warning 이 있으면 exit code 2")
     p.add_argument("--git", default="git", help="git 실행 파일 경로")
     return p
@@ -77,8 +88,19 @@ def _dump(obj, path):
         fp.write(u"\n")
 
 
+SIDE_KEYS = ("head", "base", "commit", "range", "grep")
+
+
 def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
     args = build_parser().parse_args(argv)
+    has_spec = any(getattr(args, "%s_%s" % (p, k)) for p in ("src", "dst") for k in SIDE_KEYS)
+    if not argv:
+        args.ui = True                      # 인자 없이 실행(더블클릭) -> UI
+    if args.ui and not has_spec:
+        from .server import serve
+        return serve(args.port, not args.no_browser, git=args.git)
     maps = []
     for m in args.path_map:
         if "=" not in m:
@@ -103,7 +125,7 @@ def main(argv=None):
 
     if args.output:
         _dump(bundle, args.output)
-    else:
+    elif not (args.html or args.ui):
         text = json.dumps(bundle, ensure_ascii=False, indent=2)
         getattr(sys.stdout, "buffer", sys.stdout).write((text + "\n").encode("utf-8"))
 
@@ -131,4 +153,10 @@ def main(argv=None):
     sm = bundle["summary"]
     print("[pairs] paired=%d (identical=%d) source_only=%d target_only=%d" % (
         sm["paired"], sm["identical"], sm["source_only"], sm["target_only"]), file=err)
+    if args.html:
+        from .server import write_html
+        write_html(bundle, args.html)
+    if args.ui:
+        from .server import serve
+        return serve(args.port, not args.no_browser, initial_bundle=bundle, git=args.git)
     return 2 if (args.strict and sm["warnings"]) else 0
