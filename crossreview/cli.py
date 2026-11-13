@@ -167,8 +167,8 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = build_parser().parse_args(argv)
     has_spec = any(getattr(args, "%s_%s" % (p, k)) for p in ("src", "dst") for k in SIDE_KEYS)
-    if not argv or args.ui or args.lan or args.host:
-        args.ui = True                      # 인자 없이 실행(더블클릭) 또는 서버 관련 옵션 -> UI
+    if not has_spec or args.ui or args.lan or args.local or args.host:
+        args.ui = True                      # 추출 대상(--src-/--dst-)이 없으면 UI
         err = _apply_config(args, cli_given=bool(argv))
         if err:
             print("error: %s" % err, file=sys.stderr)

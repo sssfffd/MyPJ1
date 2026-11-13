@@ -364,6 +364,24 @@ class Scenarios(unittest.TestCase):
         with self.assertRaises(ValueError):
             config.load(ini)
 
+    # 14) 추출 대상 없이 서버 옵션만 주면 UI 로 간다
+    def test_cli_routes_to_ui_without_spec(self):
+        import crossreview.server as srv
+        seen = []
+        orig = srv.serve
+        srv.serve = lambda *a, **k: seen.append(k) or 0
+        cwd = os.getcwd()
+        os.chdir(self.root)
+        try:
+            for argv in ([], ["--no-browser"], ["--port", "9001"], ["--local"]):
+                del seen[:]
+                self.assertEqual(main(argv), 0)
+                self.assertEqual(len(seen), 1, argv)
+            self.assertEqual(seen[0]["host"], "127.0.0.1")
+        finally:
+            srv.serve = orig
+            os.chdir(cwd)
+
     def test_rename_binary_and_root_commit(self):
         r = self.r
         root = r.git("rev-list", "--max-parents=0", "HEAD")
