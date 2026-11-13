@@ -49,7 +49,18 @@ def _mkdir(path):
     return path
 
 
+def run_title(bundle):
+    def one(side):
+        seg = side["segments"][-1]["how"] if side["segments"] else ""
+        return "%s [%s]" % (os.path.basename(side["repo"].rstrip("/\\")), seg)
+    return "%s  ->  %s" % (one(bundle["source"]), one(bundle["target"]))
+
+
 def save_summary(bundle, outdir):
+    write_json({"title": run_title(bundle), "generated_at": bundle.get("generated_at"),
+                "summary": bundle.get("summary"),
+                "llm_results": len(bundle.get("llm_results") or {})},
+               os.path.join(outdir, "meta.json"))
     write_json(bundle, os.path.join(outdir, "bundle.json"))
     write_html(bundle, os.path.join(outdir, "report.html"))
 

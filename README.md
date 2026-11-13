@@ -60,7 +60,27 @@ python crossreview.pyz --src-... --dst-... --html report.html   # 서버 없이 
 - LLM 호출 자체는 **훅 파일**이 담당합니다 → 아래 "LLM 연결"
 
 UI 는 표준 라이브러리 `http.server` 로 **127.0.0.1 에만** 뜨는 로컬 화면입니다 (외부 접속 불가, 외부 리소스 로드 없음, 요청 토큰/Host 검사).
-옵션: `--port`(기본 8765, 사용 중이면 빈 포트), `--browser-tab`(앱 창 대신 브라우저 탭), `--no-browser`.
+팀이 함께 쓰려면 아래 "웹 서버 모드" 를 사용하세요. 옵션: `--port`(기본 8765, 사용 중이면 빈 포트), `--browser-tab`(앱 창 대신 브라우저 탭), `--no-browser`.
+
+## 웹 서버 모드 (팀이 주소로 접속)
+
+같은 프로그램을 서버 한 대에 띄워 두고 여러 명이 브라우저로 접속해 쓸 수 있습니다. 설치는 여전히 `crossreview.pyz` 하나입니다.
+
+```bash
+python crossreview.pyz --host 0.0.0.0 --port 8765 \
+    --repo-root /srv/repos \          # 이 폴더 아래의 레포만 선택/추출 가능 (필수, 반복 가능)
+    --auth team:비밀번호 \             # 접속 시 로그인 요구 (권장)
+    --cert server.pem --key server.key \   # HTTPS (권장, 없으면 평문 HTTP)
+    --out-dir /srv/crossreview_out      # 결과 저장 폴더
+```
+
+- 레포는 **서버에 있는 clone** 을 씁니다. `--repo-root` 아래에 대상 레포들을 clone 해 두고 주기적으로 `git fetch` 하세요 (예: cron / 작업 스케줄러). 화면의 폴더 선택도 이 폴더 밖으로는 나갈 수 없습니다.
+- 추출할 때마다 실행 ID 가 붙은 폴더에 저장되고 주소가 `…/?run=실행ID` 로 바뀝니다. **"링크 복사"** 로 동료에게 그대로 공유할 수 있고, "이전 결과 열기…" 목록에서 다시 열 수 있습니다. 결과는 실행별로 분리되어 여러 명이 동시에 써도 섞이지 않습니다.
+- LLM 훅(`llm_hook.py`)과 결과 파일은 서버 쪽에 있습니다.
+- `--host` 없이 실행하면 기존처럼 내 PC 전용(127.0.0.1)입니다.
+
+보안상 알아둘 점: `--auth` 는 공용 계정 1개짜리 HTTP Basic 인증이고 사용자별 권한 구분은 없습니다.
+접속한 사람은 `--repo-root` 아래 모든 레포의 diff 를 볼 수 있으니, 그래도 되는 레포만 두세요. `--auth` 나 HTTPS 없이 띄우면 시작할 때 경고가 출력됩니다.
 
 ## LLM 연결 (llm_hook.py)
 
@@ -80,10 +100,11 @@ def review(request):
 
 ## 저장되는 파일
 
-UI 에서 추출하면 `저장 폴더/실행시각/` 아래에, CLI 는 `--out-dir DIR` 을 주면 DIR 에 저장합니다.
+UI 에서 추출하면 `저장 폴더/실행ID/` 아래에 (저장 폴더는 `--out-dir`, 기본 `./crossreview_out`), CLI 는 `--out-dir DIR` 을 주면 DIR 에 바로 저장합니다.
 
 ```
-crossreview_out/20250101_093000/
+crossreview_out/20250101_093000_a1b2/
+  meta.json                      목록 표시용 요약
   bundle.json                    전체 데이터 (LLM 결과 포함, "JSON 열기" 로 다시 볼 수 있음)
   report.html                    브라우저로 바로 열리는 리포트
   diffs/0001_app.c.source.diff   파일별 원본 diff

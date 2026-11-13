@@ -18,8 +18,9 @@ class ResolveError(Exception):
 
 
 def rev(repo, name):
-    code, out, _ = repo.run_raw(["rev-parse", "--verify", "--quiet", "--end-of-options",
-                                 name + "^{commit}"])
+    code, out = 1, b""
+    if name and not name.startswith("-"):          # 옵션으로 해석될 수 있는 이름은 거부
+        code, out, _ = repo.run_raw(["rev-parse", "--verify", "--quiet", name + "^{commit}"])
     if code != 0:
         raise ResolveError("'%s' 를 커밋으로 해석할 수 없습니다 (repo: %s). "
                            "fetch 여부와 브랜치/sha 를 확인하세요." % (name, repo.path))

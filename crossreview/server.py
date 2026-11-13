@@ -2,11 +2,18 @@
 
 from __future__ import print_function
 
+import base64
 import binascii
+import collections
 import datetime
+import hmac
+import io
 import json
 import os
+import re
 import shutil
+import socket
+import ssl
 import string
 import subprocess
 import sys
@@ -14,16 +21,18 @@ import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
+from urllib.parse import urlparse, parse_qs
 
 from .gitcmd import GitError, Repo
 from .resolve import ResolveError
 from .collect import DiffOptions
 from .bundle import build_side, build_bundle
-from .export import render_html, write_html, save_run, save_llm  # noqa: F401 (write_html 재노출)
+from .export import render_html, write_html, save_run, save_llm, unit_name  # noqa: F401
 from . import llm
 
 MAX_BODY = 256 << 20
 DEFAULT_OUT = "crossreview_out"
+RUN_ID_RE = re.compile(r"^[0-9A-Za-z_\-]{1,64}$")
 
 
 # ---------------------------------------------------------------- 요청 처리 (서버와 무관한 순수 함수)
@@ -57,7 +66,7 @@ def list_refs(repo_path, rev=None, git="git"):
                 if not r.endswith("/HEAD") and r != "origin"]
     code, out, _ = repo.run_raw(["symbolic-ref", "--quiet", "--short", "HEAD"])
     target = rev or "HEAD"
-    if not repo.ok(["rev-parse", "--verify", "--quiet", target + "^{commit}"]):
+    if target.startswith("-") or not repo.ok(["rev-parse", "--verify", "--quiet", target + "^{commit}"]):
         target = "HEAD"
     commits = []
     code2, log, _ = repo.run_raw(["log", "-n", "100", "--format=%h%x1f%p%x1f%s%x1f%an%x1f%ad",
@@ -100,15 +109,97 @@ def browse(path):
             "is_repo": os.path.exists(os.path.join(path, ".git"))}
 
 
-def _stamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+def _new_run_id():
+    return "%s_%s" % (datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+                      binascii.hexlify(os.urandom(2)).decode())
 
 
-# ---------------------------------------------------------------- HTTP
+class Runs(object):
+    """추출 결과(run) 저장소. run 하나 = out_base/<run_id>/ 폴더 하나.
+
+    서버에 전역 '현재 결과' 를 두지 않고 run_id 로 구분하므로 여러 사람이 동시에 써도 섞이지 않는다.
+    """
+    KEEP = 16
+
+    def __init__(self, out_base):
+        self.out_base = os.path.abspath(out_base or DEFAULT_OUT)
+        self.lock = threading.Lock()
+        self.cache = collections.OrderedDict()
+
+    def dir(self, run_id):
+        if not RUN_ID_RE.match(run_id or ""):
+            raise ValueError("잘못된 실행 ID 입니다.")
+        return os.path.join(self.out_base, run_id)
+
+    def _remember(self, run_id, bundle):
+        self.cache[run_id] = bundle
+        self.cache.move_to_end(run_id)
+        while len(self.cache) > self.KEEP:
+            self.cache.popitem(last=False)
+
+    def create(self, bundle):
+        with self.lock:
+            run_id = _new_run_id()
+            bundle["run_id"] = run_id
+            bundle["saved_to"] = os.path.join(self.out_base, run_id)
+            save_run(bundle, bundle["saved_to"])
+            self._remember(run_id, bundle)
+        return bundle
+
+    def get(self, run_id):
+        path = os.path.join(self.dir(run_id), "bundle.json")
+        with self.lock:
+            if run_id in self.cache:
+                return self.cache[run_id]
+            if not os.path.isfile(path):
+                raise ValueError("저장된 결과를 찾을 수 없습니다: %s" % run_id)
+            with io.open(path, encoding="utf-8") as fp:
+                bundle = json.load(fp)
+            bundle["run_id"], bundle["saved_to"] = run_id, os.path.dirname(path)
+            self._remember(run_id, bundle)
+            return bundle
+
+    def add_llm(self, run_id, index, rec):
+        bundle = self.get(run_id)
+        with self.lock:
+            bundle.setdefault("llm_results", {})[str(index)] = rec
+            rec["saved_to"] = os.path.join(self.dir(run_id), "llm",
+                                           unit_name(index, bundle["pairs"][index]) + ".md")
+            save_llm(bundle, self.dir(run_id), index, rec)
+        return rec
+
+    def list(self, limit=50):
+        out = []
+        if not os.path.isdir(self.out_base):
+            return out
+        for name in sorted(os.listdir(self.out_base), reverse=True):
+            meta = os.path.join(self.out_base, name, "meta.json")
+            if RUN_ID_RE.match(name) and os.path.isfile(meta):
+                try:
+                    with io.open(meta, encoding="utf-8") as fp:
+                        m = json.load(fp)
+                except (OSError, ValueError):
+                    continue
+                out.append({"id": name, "title": m.get("title", ""), "summary": m.get("summary"),
+                            "llm_results": m.get("llm_results", 0)})
+                if len(out) >= limit:
+                    break
+        return out
+
 
 class _Server(ThreadingMixIn, HTTPServer):
     daemon_threads = True
     allow_reuse_address = False
+
+    # --- 서버 모드: 접근 가능한 경로를 --repo-root 아래로 제한
+    def check_path(self, path):
+        if not self.roots:
+            return path or "."
+        real = os.path.realpath(os.path.join(self.roots[0], path or ""))
+        for root in self.roots:
+            if real == root or real.startswith(root.rstrip(os.sep) + os.sep):
+                return real
+        raise ValueError("허용된 폴더(--repo-root) 밖의 경로입니다: %s" % path)
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -117,12 +208,15 @@ class _Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
-    def _send(self, code, body, ctype):
+    def _send(self, code, body, ctype, extra=None):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        for k, v in (extra or {}).items():
+            self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body)
 
@@ -130,23 +224,47 @@ class _Handler(BaseHTTPRequestHandler):
         self._send(code, json.dumps(obj, ensure_ascii=False).encode("utf-8"),
                    "application/json; charset=utf-8")
 
-    def _host_ok(self):
-        # 다른 사이트가 로컬 서버를 호출하지 못하도록 Host 를 확인한다 (DNS rebinding 방지)
-        port = self.server.server_address[1]
-        return self.headers.get("Host") in ("127.0.0.1:%d" % port, "localhost:%d" % port)
+    def _allowed(self):
+        """True 면 통과. 아니면 응답을 보내고 False."""
+        sv = self.server
+        if sv.local:
+            # 다른 사이트가 로컬 서버를 호출하지 못하도록 Host 를 확인한다 (DNS rebinding 방지)
+            port = sv.server_address[1]
+            if self.headers.get("Host") not in ("127.0.0.1:%d" % port, "localhost:%d" % port):
+                self._send(403, b"forbidden", "text/plain")
+                return False
+        if sv.auth:
+            got = self.headers.get("Authorization") or ""
+            want = "Basic " + base64.b64encode(sv.auth.encode("utf-8")).decode()
+            if not hmac.compare_digest(got.encode("utf-8"), want.encode("utf-8")):
+                self._send(401, b"login required", "text/plain",
+                           {"WWW-Authenticate": 'Basic realm="crossreview", charset="UTF-8"'})
+                return False
+        return True
 
     def do_GET(self):
-        if not self._host_ok():
-            return self._send(403, b"forbidden", "text/plain")
-        if self.path.split("?")[0] != "/":
+        if not self._allowed():
+            return
+        url = urlparse(self.path)
+        if url.path != "/":
             return self._send(404, b"not found", "text/plain")
         sv = self.server
-        page = render_html(sv.bundle, sv.token, {"path": llm.find_hook(sv.hook), "out": sv.out_base})
-        self._send(200, page.encode("utf-8"), "text/html; charset=utf-8")
+        run_id = (parse_qs(url.query).get("run") or [sv.initial_run])[0]
+        bundle = None
+        if run_id:
+            try:
+                bundle = sv.runs.get(run_id)
+            except ValueError:
+                bundle = None
+        cfg = {"path": llm.find_hook(sv.hook), "out": sv.runs.out_base, "server": not sv.local}
+        self._send(200, render_html(bundle, sv.token, cfg).encode("utf-8"),
+                   "text/html; charset=utf-8")
 
     def do_POST(self):
-        if not self._host_ok() or self.headers.get("X-Token") != self.server.token:
-            return self._json(403, {"error": "forbidden"})
+        if not self._allowed():
+            return
+        if self.headers.get("X-Token") != self.server.token:       # CSRF 방지
+            return self._json(403, {"error": "페이지를 새로고침한 뒤 다시 시도하세요."})
         fn = getattr(self, "api_" + self.path[len("/api/"):].replace("/", "_"), None) \
             if self.path.startswith("/api/") else None
         if fn is None:
@@ -164,38 +282,44 @@ class _Handler(BaseHTTPRequestHandler):
 
     # --- API
     def api_refs(self, req):
-        return list_refs(req.get("repo"), req.get("rev"), git=self.server.git)
+        sv = self.server
+        return list_refs(sv.check_path(req.get("repo")), req.get("rev"), git=sv.git)
 
     def api_browse(self, req):
-        return browse(req.get("path"))
+        sv = self.server
+        path = req.get("path")
+        if not sv.roots:
+            return browse(path)
+        if path == "::roots" or (not path and len(sv.roots) > 1):
+            return {"path": "", "parent": None, "is_repo": False,
+                    "dirs": [{"name": r, "path": r, "repo": os.path.exists(os.path.join(r, ".git"))}
+                             for r in sv.roots]}
+        d = browse(sv.check_path(path))
+        if d["path"] in sv.roots:                      # 허용 폴더 위로는 올라갈 수 없다
+            d["parent"] = "::roots" if len(sv.roots) > 1 else None
+        return d
 
     def api_run(self, req):
         sv = self.server
-        bundle = run_request(req, git=sv.git)
-        if req.get("out_dir"):
-            sv.out_base = req["out_dir"]
-        with sv.lock:
-            sv.bundle = bundle
-            sv.out_dir = os.path.join(sv.out_base, _stamp())
-            bundle["saved_to"] = save_run(bundle, sv.out_dir)
-        return bundle
+        for key in ("src", "dst"):
+            side = req.get(key) or {}
+            side["repo"] = sv.check_path(side.get("repo"))
+            req[key] = side
+        return sv.runs.create(run_request(req, git=sv.git))
 
     def api_load(self, req):
-        """'JSON 열기' 로 불러온 bundle 을 서버에도 알려 LLM 분석/저장이 가능하게 한다."""
-        sv = self.server
+        """'JSON 열기' 로 불러온 bundle 을 새 run 으로 저장한다 (LLM 분석/공유 링크용)."""
         if not all(k in req for k in ("pairs", "source", "target")):
             raise ValueError("crossreview bundle 형식이 아닙니다.")
-        with sv.lock:
-            sv.bundle = req
-            saved = req.get("saved_to")
-            sv.out_dir = saved if saved and os.path.isdir(saved) else None
-        return {"ok": True}
+        b = self.server.runs.create(req)
+        return {"run_id": b["run_id"], "saved_to": b["saved_to"]}
+
+    def api_runs(self, req):
+        return {"runs": self.server.runs.list()}
 
     def api_llm(self, req):
         sv = self.server
-        bundle = sv.bundle
-        if bundle is None:
-            raise ValueError("먼저 diff 를 추출하세요.")
+        bundle = sv.runs.get(req.get("run_id") or "")
         idx = int(req.get("index", -1))
         if not 0 <= idx < len(bundle["pairs"]):
             raise ValueError("잘못된 파일 번호입니다.")
@@ -206,14 +330,7 @@ class _Handler(BaseHTTPRequestHandler):
         text = llm.call_hook(hook, request)
         rec = {"result": text, "extra_prompt": request["extra_prompt"], "hook": hook,
                "at": datetime.datetime.now().replace(microsecond=0).isoformat()}
-        with sv.lock:
-            if sv.out_dir is None:
-                sv.out_dir = os.path.join(sv.out_base, _stamp())
-                bundle["saved_to"] = save_run(bundle, sv.out_dir)
-            bundle.setdefault("llm_results", {})[str(idx)] = rec
-            rec["saved_to"] = save_llm(bundle, sv.out_dir, idx, rec)
-            save_llm(bundle, sv.out_dir, idx, rec)       # saved_to 를 포함해 다시 기록
-        return rec
+        return sv.runs.add_llm(bundle["run_id"], idx, rec)
 
 
 def _open_window(url, as_tab):
@@ -242,24 +359,57 @@ def _open_window(url, as_tab):
 
 
 def serve(port=8765, open_browser=True, initial_bundle=None, git="git", hook=None,
-          out_base=None, as_tab=False):
+          out_base=None, as_tab=False, host="127.0.0.1", roots=None, auth=None,
+          cert=None, key=None):
+    """UI 서버 실행.
+
+    host 가 127.0.0.1(기본)이면 내 PC 전용. 그 외(예: 0.0.0.0)면 팀이 접속하는 '웹 서버 모드'.
+    """
+    local = host in ("127.0.0.1", "localhost", "::1")
+    roots = [os.path.realpath(r) for r in (roots or [])]
+    if not local:
+        if not roots:
+            raise ValueError("웹 서버 모드(--host)에서는 --repo-root 로 레포가 있는 폴더를 지정해야 합니다.")
+        for r in roots:
+            if not os.path.isdir(r):
+                raise ValueError("--repo-root 폴더가 없습니다: %s" % r)
+        if auth and ":" not in auth:
+            raise ValueError("--auth 형식은 사용자:비밀번호 입니다.")
     try:
-        httpd = _Server(("127.0.0.1", port), _Handler)
+        httpd = _Server((host, port), _Handler)
     except OSError:
-        httpd = _Server(("127.0.0.1", 0), _Handler)      # 포트 사용 중이면 빈 포트
+        if not local:
+            raise ValueError("포트 %d 를 열 수 없습니다." % port)
+        httpd = _Server((host, 0), _Handler)             # 포트 사용 중이면 빈 포트
+    scheme = "http"
+    if cert:
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(cert, key)
+        httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+        scheme = "https"
     httpd.token = binascii.hexlify(os.urandom(16)).decode()
-    httpd.lock = threading.Lock()
+    httpd.local = local
+    httpd.roots = roots
+    httpd.auth = auth
     httpd.git = git
     httpd.hook = hook
-    httpd.out_base = os.path.abspath(out_base or DEFAULT_OUT)
-    httpd.bundle = initial_bundle
-    saved = (initial_bundle or {}).get("saved_to")
-    httpd.out_dir = saved if saved and os.path.isdir(saved) else None
-    url = "http://127.0.0.1:%d/" % httpd.server_address[1]
-    print("crossreview UI: %s   (종료: Ctrl+C 또는 이 창 닫기)" % url, file=sys.stderr)
-    print("LLM 훅: %s" % (llm.find_hook(hook) or "없음 (llm_hook.py 를 만들면 연결됩니다)"), file=sys.stderr)
-    sys.stderr.flush()
-    if open_browser:
+    httpd.runs = Runs(out_base)
+    httpd.initial_run = httpd.runs.create(initial_bundle)["run_id"] if initial_bundle else None
+
+    err = sys.stderr
+    shown = "127.0.0.1" if local else (socket.gethostname() if host in ("0.0.0.0", "::") else host)
+    url = "%s://%s:%d/" % (scheme, shown, httpd.server_address[1])
+    print("crossreview UI: %s   (종료: Ctrl+C 또는 이 창 닫기)" % url, file=err)
+    print("저장 폴더: %s" % httpd.runs.out_base, file=err)
+    print("LLM 훅: %s" % (llm.find_hook(hook) or "없음 (llm_hook.py 를 만들면 연결됩니다)"), file=err)
+    if not local:
+        print("웹 서버 모드: 접근 가능 폴더 = %s" % ", ".join(roots), file=err)
+        if not auth:
+            print("WARNING: --auth 가 없어 이 주소에 접속 가능한 누구나 사용할 수 있습니다.", file=err)
+        if not cert:
+            print("WARNING: HTTPS(--cert/--key)가 아니므로 통신이 암호화되지 않습니다.", file=err)
+    err.flush()
+    if open_browser and local:
         _open_window(url, as_tab)
     try:
         httpd.serve_forever()

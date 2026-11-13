@@ -133,6 +133,8 @@ aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:
   <span id="chips"></span>
   <span class="sp"></span>
   <span id="savedTo" class="chip" hidden></span>
+  <select id="runs" hidden style="width:auto;max-width:260px"><option value="">이전 결과 열기…</option></select>
+  <button id="btnLink" hidden title="이 결과의 주소를 복사">링크 복사</button>
   <button id="btnConfig">추출 설정</button>
   <button id="btnInfo">구간 정보</button>
   <button id="btnOpen">JSON 열기</button>
@@ -150,11 +152,11 @@ aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:
     <label><input type="checkbox" id="o_function_context"> 함수 전체 (-W)</label>
     <label><input type="checkbox" id="o_ignore_space"> 공백 변경 무시</label>
     <label>경로 매핑 <input type="text" id="o_path_map" placeholder="src/v1/=src/v2/, a.c=b.c"></label>
-    <label>저장 폴더 <input type="text" id="o_out_dir"></label>
+    <span class="chip" id="outChip"></span>
     <button class="primary" id="btnRun">diff 추출</button>
     <span id="busy" class="hint" hidden>추출 중…</span>
   </div>
-  <div class="hint">구간 우선순위: range / commit → grep → base·head (PR 모드, merge-base 기준). commit·range·pathspec 은 쉼표로 여러 개 (과거 → 최신 순). 추출하면 저장 폴더 아래에 실행 시각 폴더가 만들어지고 bundle.json · report.html · diffs/*.diff 가 저장됩니다.</div>
+  <div class="hint">구간 우선순위: range / commit → grep → base·head (PR 모드, merge-base 기준). commit·range·pathspec 은 쉼표로 여러 개 (과거 → 최신 순). 추출하면 저장 폴더 아래에 실행별 폴더가 만들어지고 bundle.json · report.html · diffs/*.diff 가 저장됩니다.</div>
 </section>
 <div id="error" hidden></div>
 <section id="info" hidden><div class="sides" id="infoBody"></div></section>
@@ -323,7 +325,7 @@ function loadRefs(p) {
   });
 }
 function formIds() {
-  var ids = ["o_context", "o_function_context", "o_ignore_space", "o_path_map", "o_out_dir", "extraPrompt"];
+  var ids = ["o_context", "o_function_context", "o_ignore_space", "o_path_map", "extraPrompt"];
   ["src", "dst"].forEach(function (p) { FIELDS.forEach(function (f) { ids.push(p + "_" + f[0]); }); });
   return ids;
 }
@@ -353,8 +355,7 @@ $("btnRun").onclick = function () {
               context: parseInt($("o_context").value, 10) || 0,
               function_context: $("o_function_context").checked,
               ignore_space: $("o_ignore_space").checked,
-              path_maps: list($("o_path_map").value),
-              out_dir: $("o_out_dir").value.trim() || null };
+              path_maps: list($("o_path_map").value) };
   $("btnRun").disabled = true; $("busy").hidden = false;
   api("run", req).then(setBundle)
     .catch(function (e) { showError(e.message); })
@@ -403,7 +404,9 @@ $("file").onchange = function () {
       var d = JSON.parse(rd.result);
       if (!d.pairs || !d.source || !d.target) throw new Error("crossreview bundle 형식이 아닙니다");
       showError(""); setBundle(d);
-      if (TOKEN) api("load", d).catch(function (e) { showError(e.message); });
+      if (TOKEN) api("load", d).then(function (r) {
+        bundle.run_id = r.run_id; bundle.saved_to = r.saved_to; renderInfo(); syncUrl(); loadRuns();
+      }).catch(function (e) { showError(e.message); });
     } catch (e) { showError("JSON 을 읽을 수 없습니다: " + e.message); }
   };
   rd.readAsText(f, "utf-8"); this.value = "";
@@ -659,7 +662,7 @@ function renderLlm() {
   }
 }
 function runLlm(i) {
-  return api("llm", { index: i, extra_prompt: $("extraPrompt").value }).then(function (d) {
+  return api("llm", { run_id: bundle.run_id, index: i, extra_prompt: $("extraPrompt").value }).then(function (d) {
     if (d.no_hook) { state.preview = { i: i, prompt: d.prompt }; return false; }
     state.preview = null;
     $("hookChip").textContent = "훅 연결됨" + (d.hook ? ": " + d.hook : ""); $("hookChip").className = "chip good";
@@ -706,6 +709,29 @@ $("btnLlmToggle").onclick = function () {
 };
 $("extraPrompt").onchange = saveForm;
 
+// ---------------------------------------------------------------- 이전 결과 / 공유 링크
+function syncUrl() {
+  var id = bundle && bundle.run_id;
+  $("btnLink").hidden = !(TOKEN && id);
+  if (TOKEN && id && window.history.replaceState) history.replaceState(null, "", "?run=" + encodeURIComponent(id));
+}
+function loadRuns() {
+  api("runs").then(function (d) {
+    var sel = $("runs"); sel.hidden = !d.runs.length;
+    while (sel.options.length > 1) sel.remove(1);
+    d.runs.forEach(function (r) {
+      var t = r.id.slice(0, 15).replace(/^(\d{4})(\d\d)(\d\d)_(\d\d)(\d\d)(\d\d)$/, "$2-$3 $4:$5");
+      sel.appendChild(new Option(t + "  " + r.title + (r.llm_results ? "  (LLM " + r.llm_results + ")" : ""), r.id));
+    });
+  }).catch(function () {});
+}
+$("runs").onchange = function () { if (this.value) location.href = "?run=" + encodeURIComponent(this.value); };
+$("btnLink").onclick = function () {
+  var b = this, done = function () { b.textContent = "복사됨"; setTimeout(function () { b.textContent = "링크 복사"; }, 1500); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(location.href).then(done);
+  else { var t = el("textarea"); t.value = location.href; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); done(); }
+};
+
 // ---------------------------------------------------------------- 시작
 function setBundle(b) {
   bundle = b; state.sel = -1; state.preview = null;
@@ -715,7 +741,8 @@ function setBundle(b) {
   $("vsum").className = "chip"; $("vsum").textContent = "파일을 선택하세요";
   $("btnPrev").disabled = $("btnNext").disabled = true;
   if (!TOKEN) $("llm").hidden = !(b && b.llm_results && Object.keys(b.llm_results).length);
-  renderLlm();
+  renderLlm(); syncUrl();
+  if (TOKEN && b) loadRuns();
   if (b) {
     $("config").hidden = true;
     var first = -1;                       // 차이가 있는 첫 파일부터 보여준다
@@ -726,7 +753,8 @@ function setBundle(b) {
 }
 if (TOKEN) {
   loadForm(); recentRepos();
-  if (!$("o_out_dir").value && HOOK) $("o_out_dir").value = HOOK.out;
+  $("outChip").textContent = "저장 폴더: " + HOOK.out; $("outChip").title = HOOK.out;
+  loadRuns();
   $("hookChip").textContent = HOOK && HOOK.path ? "훅 연결됨: " + HOOK.path : "훅 없음 (프롬프트 미리보기만 가능)";
   $("hookChip").className = "chip " + (HOOK && HOOK.path ? "good" : "warn");
   ["src", "dst"].forEach(loadRefs);

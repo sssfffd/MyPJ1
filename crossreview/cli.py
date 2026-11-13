@@ -25,6 +25,9 @@ UI:
   python -m crossreview ... --ui        추출 결과를 바로 UI 로 확인
   python -m crossreview ... --html r.html   서버 없이 열 수 있는 HTML 리포트
 
+웹 서버 모드 (서버 한 대에 띄우고 팀이 브라우저로 접속):
+  python -m crossreview --host 0.0.0.0 --port 8765 --repo-root /srv/repos --auth team:비밀번호
+
 예시:
   # 원본 PR(v1) 과 횡전개 PR(v2) 비교 - 서로 다른 레포
   python -m crossreview --src-repo ../v1 --src-base origin/main --src-head feature/login \\
@@ -81,6 +84,14 @@ def build_parser():
                    help="결과 한 벌 저장: bundle.json, report.html, diffs/*.diff "
                         "(UI 에서는 저장 폴더의 기본값, 기본 ./crossreview_out)")
     p.add_argument("--llm-hook", metavar="FILE", help="LLM 훅 파일 (기본: ./llm_hook.py)")
+    w = p.add_argument_group("웹 서버 모드 (팀이 주소로 접속)")
+    w.add_argument("--host", default="127.0.0.1", metavar="ADDR",
+                   help="접속을 받을 주소. 기본 127.0.0.1(내 PC 전용), 0.0.0.0 이면 다른 PC 에서 접속 가능")
+    w.add_argument("--repo-root", action="append", metavar="DIR",
+                   help="서버에서 접근을 허용할 폴더 (이 아래의 레포만 선택 가능, 반복 가능)")
+    w.add_argument("--auth", metavar="USER:PASS", help="접속 시 로그인 요구 (HTTP Basic)")
+    w.add_argument("--cert", metavar="FILE", help="HTTPS 인증서 (PEM)")
+    w.add_argument("--key", metavar="FILE", help="HTTPS 개인키 (PEM)")
     p.add_argument("--browser-tab", action="store_true",
                    help="UI 를 앱 창 대신 기본 브라우저 탭으로 열기")
     p.add_argument("--strict", action="store_true", help="warning 이 있으면 exit code 2")
@@ -102,12 +113,22 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = build_parser().parse_args(argv)
     has_spec = any(getattr(args, "%s_%s" % (p, k)) for p in ("src", "dst") for k in SIDE_KEYS)
-    if not argv:
-        args.ui = True                      # 인자 없이 실행(더블클릭) -> UI
-    if args.ui and not has_spec:
+    if not argv or args.host != "127.0.0.1":
+        args.ui = True                      # 인자 없이 실행(더블클릭) 또는 --host -> UI
+
+    def ui(bundle=None):
         from .server import serve
-        return serve(args.port, not args.no_browser, git=args.git, hook=args.llm_hook,
-                     out_base=args.out_dir, as_tab=args.browser_tab)
+        try:
+            return serve(args.port, not args.no_browser, initial_bundle=bundle, git=args.git,
+                         hook=args.llm_hook, out_base=args.out_dir, as_tab=args.browser_tab,
+                         host=args.host, roots=args.repo_root, auth=args.auth,
+                         cert=args.cert, key=args.key)
+        except (ValueError, OSError) as e:
+            print("error: %s" % e, file=sys.stderr)
+            return 1
+
+    if args.ui and not has_spec:
+        return ui()
     maps = []
     for m in args.path_map:
         if "=" not in m:
@@ -160,7 +181,7 @@ def main(argv=None):
     sm = bundle["summary"]
     print("[pairs] paired=%d (identical=%d) source_only=%d target_only=%d" % (
         sm["paired"], sm["identical"], sm["source_only"], sm["target_only"]), file=err)
-    if args.out_dir:
+    if args.out_dir and not args.ui:
         from .export import save_run
         bundle["saved_to"] = save_run(bundle, args.out_dir)
         print("[saved] %s" % bundle["saved_to"], file=sys.stderr)
@@ -168,7 +189,5 @@ def main(argv=None):
         from .export import write_html
         write_html(bundle, args.html)
     if args.ui:
-        from .server import serve
-        return serve(args.port, not args.no_browser, initial_bundle=bundle, git=args.git,
-                     hook=args.llm_hook, as_tab=args.browser_tab)
+        return ui(bundle)
     return 2 if (args.strict and sm["warnings"]) else 0

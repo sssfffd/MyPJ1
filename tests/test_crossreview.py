@@ -294,7 +294,7 @@ class Scenarios(unittest.TestCase):
         b = run_request({"src": side, "dst": side})
         out = os.path.join(self.root, "out")
         save_run(b, out)
-        self.assertEqual(sorted(os.listdir(out)), ["bundle.json", "diffs", "report.html"])
+        self.assertEqual(sorted(os.listdir(out)), ["bundle.json", "diffs", "meta.json", "report.html"])
         self.assertEqual(sorted(os.listdir(os.path.join(out, "diffs"))),
                          ["0001_app.c.source.diff", "0001_app.c.target.diff"])
 
@@ -314,6 +314,35 @@ class Scenarios(unittest.TestCase):
             self.assertIn(u"결과: app.c", fp.read())
         with io.open(os.path.join(out, "bundle.json"), encoding="utf-8") as fp:
             self.assertEqual(json.load(fp)["llm_results"]["0"]["result"], text)
+
+    # 12) 웹 서버 모드: run 저장소(여러 사용자 분리), 경로 제한
+    def test_runs_store_and_path_restriction(self):
+        from crossreview.server import run_request, Runs, _Server
+        r = self.r
+        r.git("checkout", "-q", "-b", "feat")
+        r.sub("app.c", "line 5\n", "line 5 X\n"); r.commit("feature")
+        side = {"repo": r.path, "base": "main", "head": "feat"}
+        runs = Runs(os.path.join(self.root, "store"))
+        a = runs.create(run_request({"src": side, "dst": side}))
+        b = runs.create(run_request({"src": side, "dst": side}))
+        self.assertNotEqual(a["run_id"], b["run_id"])
+        runs.add_llm(a["run_id"], 0, {"result": "R", "extra_prompt": "", "at": "t"})
+        fresh = Runs(os.path.join(self.root, "store"))            # 재시작 후 디스크에서 복원
+        self.assertEqual(fresh.get(a["run_id"])["llm_results"]["0"]["result"], "R")
+        self.assertNotIn("llm_results", fresh.get(b["run_id"]))
+        self.assertEqual(sorted(x["id"] for x in fresh.list()), sorted([a["run_id"], b["run_id"]]))
+        for bad in ("../x", "", "a/b"):
+            with self.assertRaises(ValueError):
+                fresh.get(bad)
+
+        class Fake(object):
+            roots = [os.path.realpath(self.root)]
+            check_path = _Server.check_path
+        f = Fake()
+        self.assertEqual(f.check_path("r"), os.path.realpath(r.path))
+        for bad in ("..", "/etc", os.path.join(r.path, "..", "..")):
+            with self.assertRaises(ValueError):
+                f.check_path(bad)
 
     def test_rename_binary_and_root_commit(self):
         r = self.r
