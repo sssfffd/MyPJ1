@@ -18,51 +18,54 @@
   --warn-bg:#3a2f0b;--warn-t:#f0cf6b;--ok:#56d364;--bad:#ff7b72;--sel:#1b2a44;
 }}
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--text);font:13px/1.45 "Segoe UI","Malgun Gothic",system-ui,sans-serif;display:flex;flex-direction:column}
 button,input,select,textarea{font:inherit;color:inherit}
 button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 11px;cursor:pointer;white-space:nowrap}
 button:hover{border-color:var(--accent)}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.big{padding:9px 28px;font-size:15px}
 button.sm{padding:2px 8px;font-size:12px}
 button:disabled{opacity:.5;cursor:default}
-input[type=text],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:4px 7px;width:100%;min-width:0}
+input[type=text],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:5px 7px;width:100%;min-width:0}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 header{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
 header h1{font-size:15px;margin:0 8px 0 0}
 .sp{flex:1}
-.chip{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:12px;color:var(--mute);white-space:nowrap}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:12px;color:var(--mute);white-space:nowrap;max-width:40vw;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 .chip b{color:var(--text)}
 .chip.warn{background:var(--warn-bg);color:var(--warn-t);border-color:transparent}
-.chip{max-width:38vw;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 .chip.good{color:var(--ok);border-color:var(--ok)}
-#config,#info{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 14px}
-[hidden]{display:none !important}
+.hint{color:var(--mute);font-size:12px}
+
+/* ---- 추출 화면 */
+#config{background:var(--panel);border-bottom:1px solid var(--line);padding:14px}
 .sides{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.side h3{margin:0 0 6px;font-size:13px;display:flex;gap:8px;align-items:center}
-.grid{display:grid;grid-template-columns:70px minmax(0,1fr) 170px;gap:4px 6px;align-items:center}
-.grid label{color:var(--mute);font-size:12px}
-.grid select{font-size:12px}
-.opts{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}
-.opts label{display:flex;gap:5px;align-items:center;color:var(--mute);white-space:nowrap}
-.opts input[type=number]{width:60px}
-.opts input[type=text]{width:220px}
-.hint{color:var(--mute);font-size:12px;margin-top:6px}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
+.card h3{margin:0 0 8px;font-size:14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.form{display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px 8px;align-items:center}
+.form label{color:var(--mute);font-size:12px}
+.form .reason{grid-column:2;margin-top:-2px}
+.runrow{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+details.adv{margin-top:10px}
+details.adv summary{cursor:pointer;color:var(--mute);font-size:12px}
+details.adv .sides{margin-top:8px}
 #error{background:var(--del);color:var(--del-t);padding:8px 14px;white-space:pre-wrap;border-bottom:1px solid var(--line)}
-.card{border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
-.card h3{margin:0 0 4px;font-size:13px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.card ul{margin:4px 0;padding-left:18px}
-.card li{overflow-wrap:anywhere}
-.card .w{color:var(--warn-t);background:var(--warn-bg);border-radius:4px;padding:1px 5px;list-style:none;margin:2px 0 2px -18px}
-.card details{margin-top:4px}
-.card summary{cursor:pointer;color:var(--mute)}
+#info{background:var(--panel);border-bottom:1px solid var(--line);padding:8px 14px}
+#info ul{margin:4px 0;padding-left:18px}
+#info li{overflow-wrap:anywhere}
+#info .w{color:var(--warn-t)}
+#info details{margin-top:2px}
+#info summary{cursor:pointer;color:var(--mute)}
 .mono{font-family:Consolas,"D2Coding",ui-monospace,monospace;font-size:12px}
+
+/* ---- 결과 화면 */
 main{flex:1;display:flex;min-height:0}
-aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column}
-.filters{padding:8px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
-.seg{display:flex;gap:4px;flex-wrap:wrap}
-.seg button{padding:2px 8px;font-size:12px;border-radius:10px}
-.seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+aside{width:270px;min-width:190px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column}
+.filters{padding:8px;border-bottom:1px solid var(--line);display:flex;gap:4px;flex-wrap:wrap}
+.filters button{padding:2px 9px;font-size:12px;border-radius:10px}
+.filters button.on{background:var(--accent);border-color:var(--accent);color:#fff}
 #list{overflow:auto;flex:1}
 .item{padding:6px 10px 6px 8px;border-bottom:1px solid var(--line);border-left:4px solid transparent;cursor:pointer;display:flex;gap:8px;align-items:center}
 .item.c-same{border-left-color:var(--ok)}
@@ -80,7 +83,6 @@ aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:
 .b-ai{color:var(--accent);border:1px solid var(--accent)}
 #viewer{flex:1;display:flex;flex-direction:column;min-width:0}
 #vhead{padding:6px 12px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-#vhead label{color:var(--mute);display:flex;gap:4px;align-items:center;white-space:nowrap}
 #panes{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
 .pane{display:flex;flex-direction:column;min-width:0;min-height:0}
 .pane+.pane{border-left:1px solid var(--line)}
@@ -101,20 +103,19 @@ aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:
 .empty{padding:30px;color:var(--mute);text-align:center}
 .legend{color:var(--mute);font-size:12px;display:flex;gap:10px;align-items:center;white-space:nowrap}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:3px;vertical-align:-1px}
-#llm{border-top:2px solid var(--line);background:var(--panel);display:flex;flex-direction:column;height:260px;min-height:0}
-#llm.closed{height:auto}
-#llm.closed #llmBody{display:none}
-#llmHead{display:flex;gap:8px;align-items:center;padding:5px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-#llmHead b{font-size:13px}
-#llmBody{flex:1;display:grid;grid-template-columns:minmax(240px,34%) 1fr;min-height:0}
+
+/* ---- LLM */
+#llm{border-top:2px solid var(--line);background:var(--panel);display:grid;grid-template-columns:minmax(240px,32%) 1fr;height:250px;min-height:0}
 #llmLeft{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-right:1px solid var(--line);min-height:0}
-#llmLeft label{color:var(--mute);font-size:12px}
+#llmLeft b{font-size:13px}
 #extraPrompt{flex:1;resize:none;min-height:40px}
 #llmLeft .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 #llmRight{display:flex;flex-direction:column;min-width:0;min-height:0}
 #llmMeta{padding:4px 10px;color:var(--mute);font-size:12px;border-bottom:1px solid var(--line);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #llmOut{flex:1;overflow:auto;margin:0;padding:8px 12px;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.55 "Segoe UI","Malgun Gothic",system-ui,sans-serif}
 #llmOut.mono{font-family:Consolas,"D2Coding",ui-monospace,monospace;font-size:12px}
+
+/* ---- 폴더 선택 창 */
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9}
 #modal .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;width:min(640px,92vw);height:min(560px,86vh);display:flex;flex-direction:column}
 #modal .top,#modal .bot{padding:10px 12px;display:flex;gap:8px;align-items:center}
@@ -124,7 +125,7 @@ aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:
 #dirs div{padding:5px 14px;cursor:pointer;display:flex;gap:8px;align-items:center}
 #dirs div:hover{background:var(--sel)}
 #dirs .git{color:var(--ok);font-size:11px;border:1px solid var(--ok);border-radius:4px;padding:0 4px}
-@media (max-width:900px){.sides,#panes{grid-template-columns:1fr}aside{width:190px}#llmBody{grid-template-columns:1fr 1fr}}
+@media (max-width:900px){.sides,#panes{grid-template-columns:1fr}aside{width:180px}#llm{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -132,45 +133,49 @@ aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:
   <h1>crossreview</h1>
   <span id="chips"></span>
   <span class="sp"></span>
-  <span id="savedTo" class="chip" hidden></span>
-  <select id="runs" hidden style="width:auto;max-width:260px"><option value="">이전 결과 열기…</option></select>
-  <button id="btnLink" hidden title="이 결과의 주소를 복사">링크 복사</button>
-  <button id="btnConfig">추출 설정</button>
-  <button id="btnInfo">구간 정보</button>
-  <button id="btnOpen">JSON 열기</button>
-  <button id="btnSave" disabled>JSON 저장</button>
-  <input type="file" id="file" accept=".json" hidden>
+  <select id="runs" hidden style="width:auto;max-width:280px"><option value="">이전 결과 열기…</option></select>
+  <button id="btnLink" hidden title="이 결과의 주소를 복사해 동료에게 공유">링크 복사</button>
+  <button id="btnNew" hidden>새로 비교</button>
 </header>
 
 <section id="config" hidden>
   <div class="sides">
-    <div class="side" data-side="src"><h3>원본 (기능을 처음 개발한 쪽) <span class="chip" id="src_cur" hidden></span></h3><div class="grid"></div></div>
-    <div class="side" data-side="dst"><h3>대상 (횡전개한 쪽) <span class="chip" id="dst_cur" hidden></span></h3><div class="grid"></div></div>
+    <div class="card" data-side="src"><h3>원본 <span class="hint">기능을 처음 개발한 쪽</span></h3></div>
+    <div class="card" data-side="dst"><h3>대상 <span class="hint">횡전개한 쪽</span></h3></div>
   </div>
-  <div class="opts">
-    <label>컨텍스트 <input type="number" id="o_context" min="0" max="999" value="3"></label>
-    <label><input type="checkbox" id="o_function_context"> 함수 전체 (-W)</label>
-    <label><input type="checkbox" id="o_ignore_space"> 공백 변경 무시</label>
-    <label>경로 매핑 <input type="text" id="o_path_map" placeholder="src/v1/=src/v2/, a.c=b.c"></label>
-    <span class="chip" id="outChip"></span>
-    <button class="primary" id="btnRun">diff 추출</button>
+  <div class="runrow">
+    <button class="primary big" id="btnRun">비교하기</button>
     <span id="busy" class="hint" hidden>추출 중…</span>
+    <span class="hint">레포만 고르면 브랜치는 자동으로 선택됩니다. 결과는 자동으로 파일로 저장됩니다.</span>
   </div>
-  <div class="hint">구간 우선순위: range / commit → grep → base·head (PR 모드, merge-base 기준). commit·range·pathspec 은 쉼표로 여러 개 (과거 → 최신 순). 추출하면 저장 폴더 아래에 실행별 폴더가 만들어지고 bundle.json · report.html · diffs/*.diff 가 저장됩니다.</div>
+  <details class="adv" id="adv">
+    <summary>고급 — 기능이 여러 PR 에 나뉘어 들어간 경우 등</summary>
+    <div class="sides">
+      <div class="form">
+        <label for="src_commit">원본 커밋</label><input type="text" id="src_commit" placeholder="머지 커밋 sha (쉼표로 여러 개, 과거 → 최신)">
+        <label for="src_grep">원본 이슈</label><input type="text" id="src_grep" placeholder="커밋 메시지의 이슈 키 (예: PROJ-123)">
+      </div>
+      <div class="form">
+        <label for="dst_commit">대상 커밋</label><input type="text" id="dst_commit" placeholder="머지 커밋 sha (쉼표로 여러 개, 과거 → 최신)">
+        <label for="dst_grep">대상 이슈</label><input type="text" id="dst_grep" placeholder="커밋 메시지의 이슈 키 (예: PROJ-123)">
+      </div>
+    </div>
+    <div class="form" style="margin-top:6px;grid-template-columns:110px minmax(0,1fr)">
+      <label for="path_map">경로가 다를 때</label><input type="text" id="path_map" placeholder="원본경로=대상경로 (예: src/v1/=src/v2/), 쉼표로 여러 개">
+    </div>
+    <div class="hint" style="margin-top:6px">커밋이나 이슈를 입력하면 그쪽은 브랜치 대신 이 값으로 비교합니다. 비워 두면 위의 브랜치를 사용합니다.</div>
+  </details>
 </section>
 <div id="error" hidden></div>
-<section id="info" hidden><div class="sides" id="infoBody"></div></section>
+<section id="info" hidden></section>
 
-<main>
+<main id="result" hidden>
   <aside>
-    <div class="filters">
-      <input type="text" id="q" placeholder="파일 검색">
-      <div class="seg" id="filter">
-        <button data-f="all" class="on">전체</button>
-        <button data-f="diff">차이 있음</button>
-        <button data-f="only">한쪽만</button>
-        <button data-f="same">동일</button>
-      </div>
+    <div class="filters" id="filter">
+      <button data-f="all" class="on">전체</button>
+      <button data-f="diff">차이 있음</button>
+      <button data-f="only">한쪽만</button>
+      <button data-f="same">동일</button>
     </div>
     <div id="list"></div>
   </aside>
@@ -186,36 +191,25 @@ aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:
         <span><i style="background:var(--miss);box-shadow:inset 3px 0 0 var(--miss-bar)"></i>반대쪽에 없는 변경</span>
         <span><i style="background:var(--x)"></i>달라진 글자</span>
       </span>
-      <label><input type="checkbox" id="onlyChanged"> 변경 라인만</label>
-      <label><input type="checkbox" id="syncScroll" checked> 스크롤 동기화</label>
     </div>
     <div id="panes">
       <div class="pane"><div class="ptitle" id="tS"></div><div class="code" id="cS"></div></div>
       <div class="pane"><div class="ptitle" id="tT"></div><div class="code" id="cT"></div></div>
     </div>
     <div id="llm">
-      <div id="llmHead">
-        <b>LLM 리뷰</b>
-        <span id="hookChip" class="chip"></span>
-        <span class="sp"></span>
-        <button class="sm" id="btnLlmSave" disabled>결과 저장 (.md)</button>
-        <button class="sm" id="btnLlmToggle">접기</button>
+      <div id="llmLeft">
+        <b>LLM 리뷰 <span id="hookChip" class="chip"></span></b>
+        <textarea id="extraPrompt" placeholder="추가로 요청할 내용 (선택)&#10;예) v2 는 로깅 API 가 다르니 log_* 차이는 무시하고 예외 처리 누락만 봐줘"></textarea>
+        <div class="row">
+          <button class="primary" id="btnLlmOne" disabled>이 파일 분석</button>
+          <button id="btnLlmAll" disabled>차이 있는 파일 전체 분석</button>
+          <button id="btnLlmStop" hidden>중지</button>
+        </div>
+        <div class="hint" id="llmStatus"></div>
       </div>
-      <div id="llmBody">
-        <div id="llmLeft">
-          <label for="extraPrompt">추가 프롬프트 (기본 지시문 · diff 뒤에 덧붙여 전송)</label>
-          <textarea id="extraPrompt" placeholder="예) v2 는 로깅 API 가 다르니 log_* 호출 차이는 무시하고, 예외 처리 누락만 봐줘"></textarea>
-          <div class="row">
-            <button class="primary" id="btnLlmOne" disabled>이 파일 분석</button>
-            <button id="btnLlmAll" disabled>차이 있는 파일 전체 분석</button>
-            <button id="btnLlmStop" hidden>중지</button>
-          </div>
-          <div class="hint" id="llmStatus" style="margin:0"></div>
-        </div>
-        <div id="llmRight">
-          <div id="llmMeta">결과가 여기에 표시됩니다.</div>
-          <pre id="llmOut"></pre>
-        </div>
+      <div id="llmRight">
+        <div id="llmMeta">결과가 여기에 표시됩니다.</div>
+        <pre id="llmOut"></pre>
       </div>
     </div>
   </section>
@@ -225,21 +219,18 @@ aside{width:290px;min-width:200px;border-right:1px solid var(--line);background:
   <div class="box">
     <div class="top"><button class="sm" id="dirUp">↑ 상위</button><input type="text" id="dirPath"><button class="sm" id="dirGo">이동</button></div>
     <div id="dirs"></div>
-    <div class="bot"><span class="hint" id="dirHint" style="margin:0"></span><span class="sp"></span><button id="dirCancel">취소</button><button class="primary" id="dirPick">이 폴더 선택</button></div>
+    <div class="bot"><span class="hint" id="dirHint"></span><span class="sp"></span><button id="dirCancel">취소</button><button class="primary" id="dirPick">이 폴더 선택</button></div>
   </div>
 </div>
 
 <script>
 "use strict";
-var TOKEN = /*__TOKEN__*/null;      // 서버 모드일 때만 값이 들어온다
-var HOOK = /*__HOOK__*/null;        // {path: 훅 파일 경로|null, out: 기본 저장 폴더}
+var TOKEN = /*__TOKEN__*/null;      // 서버에서 열었을 때만 값이 있다 (report.html 은 보기 전용)
+var HOOK = /*__HOOK__*/null;        // {path: 훅 파일 경로|null, out: 저장 폴더}
 var bundle = /*__BUNDLE__*/null;
 var $ = function (id) { return document.getElementById(id); };
-var FIELDS = [["repo", "레포", "레포 폴더 경로"], ["base", "base", "PR 대상 브랜치 (origin/main)"],
-              ["head", "head", "PR 브랜치 / 커밋 (HEAD)"], ["commit", "commit", "sha1, sha2"],
-              ["range", "range", "A..B, C..D"], ["grep", "grep", "이슈 키 (PROJ-123)"],
-              ["pathspec", "pathspec", "src/, *.c"]];
-var state = { filter: "all", q: "", sel: -1, visible: [], stop: false, busy: false, preview: null };
+var state = { filter: "all", sel: -1, visible: [], stop: false, busy: false, preview: null, repos: [] };
+var OTHER = "::other";
 
 function el(tag, cls, text) {
   var e = document.createElement(tag);
@@ -255,122 +246,85 @@ function api(name, body) {
     .then(function (d) { if (d.error) throw new Error(d.error); return d; });
 }
 function showError(msg) { $("error").hidden = !msg; $("error").textContent = msg || ""; }
+function store(k, v) {
+  try { if (v === undefined) return JSON.parse(localStorage.getItem("crossreview." + k) || "null");
+        localStorage.setItem("crossreview." + k, JSON.stringify(v)); } catch (e) { return null; }
+}
 
-// ---------------------------------------------------------------- 설정 폼
-document.querySelectorAll("#config .side").forEach(function (side) {
-  var g = side.querySelector(".grid"), p = side.dataset.side;
-  FIELDS.forEach(function (f) {
-    var id = p + "_" + f[0], lb = el("label", "", f[1]), inp = el("input"), third;
-    lb.htmlFor = id; inp.type = "text"; inp.id = id; inp.placeholder = f[2];
-    if (f[0] === "repo") {
-      third = el("button", "sm", "폴더 선택…");
-      third.onclick = function () { openBrowser(p); };
-      inp.setAttribute("list", "recentRepos");
-      inp.onchange = function () { loadRefs(p); };
-    } else if (f[0] === "base" || f[0] === "head" || f[0] === "commit") {
-      third = el("select"); third.id = id + "_sel";
-      third.appendChild(new Option(f[0] === "commit" ? "커밋 선택…" : "브랜치 선택…", ""));
-      third.onchange = function () {
-        if (!this.value) return;
-        if (f[0] === "commit") { var cur = list(inp.value); if (cur.indexOf(this.value) < 0) cur.push(this.value); inp.value = cur.join(", "); }
-        else { inp.value = this.value; if (f[0] === "head") loadRefs(p); }
-        this.value = "";
-      };
-      if (f[0] === "head") inp.onchange = function () { loadRefs(p); };
-    } else third = el("span");
-    g.appendChild(lb); g.appendChild(inp); g.appendChild(third);
+// ================================================================ 추출 화면
+// 각 쪽: 레포 선택 → 브랜치/기준이 자동으로 채워진다
+document.querySelectorAll("#config .card").forEach(function (card) {
+  var p = card.dataset.side, f = el("div", "form");
+  [["repo", "레포"], ["head", "브랜치"], ["base", "기준"]].forEach(function (x) {
+    var lb = el("label", "", x[1]), sel = el("select"); lb.htmlFor = sel.id = p + "_" + x[0];
+    f.appendChild(lb); f.appendChild(sel);
   });
+  var reason = el("div", "hint reason"); reason.id = p + "_reason"; f.appendChild(reason);
+  card.appendChild(f);
+  $(p + "_repo").onchange = function () {
+    if (this.value === OTHER) { openBrowser(p); return; }
+    loadRefs(p, this.value);
+  };
+  $(p + "_head").title = "비교할 작업 브랜치 (PR 브랜치)";
+  $(p + "_base").title = "PR 을 머지할 대상 브랜치. 이 브랜치와 갈라진 지점부터의 변경을 비교합니다.";
 });
-var dl = el("datalist"); dl.id = "recentRepos"; document.body.appendChild(dl);
 
-function recentRepos(add) {
-  var r = [];
-  try { r = JSON.parse(localStorage.getItem("crossreview.repos") || "[]"); } catch (e) {}
-  if (add) {
-    r = [add].concat(r.filter(function (x) { return x !== add; })).slice(0, 12);
-    try { localStorage.setItem("crossreview.repos", JSON.stringify(r)); } catch (e) {}
-  }
-  dl.textContent = "";
-  r.forEach(function (x) { dl.appendChild(new Option(x, x)); });
-}
-function fillSelect(sel, first, groups) {
-  sel.textContent = ""; sel.appendChild(new Option(first, ""));
-  groups.forEach(function (g) {
-    if (!g[1].length) return;
-    var og = el("optgroup"); og.label = g[0];
-    g[1].forEach(function (o) { og.appendChild(new Option(o[0], o[1])); });
-    sel.appendChild(og);
-  });
-}
-function loadRefs(p) {
-  var repo = $(p + "_repo").value.trim(), cur = $(p + "_cur");
-  if (!TOKEN || !repo) return;
-  api("refs", { repo: repo, rev: $(p + "_head").value.trim() || null }).then(function (d) {
-    showError("");
-    $(p + "_repo").value = d.repo; recentRepos(d.repo);
-    cur.hidden = false; cur.className = "chip good";
-    cur.textContent = "현재 브랜치: " + (d.current || "(detached)") + " · 브랜치 " + (d.branches.length + d.remotes.length) + "개";
-    var same = function (a) { return a.map(function (x) { return [x, x]; }); };
-    ["base", "head"].forEach(function (k) {
-      fillSelect($(p + "_" + k + "_sel"), "브랜치 선택…",
-        [["원격 브랜치", same(d.remotes)], ["로컬 브랜치", same(d.branches)], ["태그", same(d.tags)]]);
+function fillRepos(p, selected) {
+  var sel = $(p + "_repo"), repos = state.repos.slice();
+  if (selected && repos.indexOf(selected) < 0) repos.unshift(selected);
+  sel.textContent = "";
+  sel.appendChild(new Option(repos.length ? "레포를 선택하세요" : "레포를 찾지 못했습니다 — 다른 폴더 선택", ""));
+  repos.forEach(function (r) {            // 레포 폴더 기준 상대 경로로 보여준다
+    var label = r;
+    (state.roots || []).forEach(function (root) {
+      var pre = root.replace(/[\\/]+$/, "");
+      if (r.length > pre.length && r.indexOf(pre) === 0) label = r.slice(pre.length + 1);
     });
-    fillSelect($(p + "_commit_sel"), "커밋 선택… (" + d.commits_of + ")", [["최근 커밋", d.commits.map(function (c) {
-      var s = c.subject.length > 60 ? c.subject.slice(0, 60) + "…" : c.subject;
-      return [c.sha + (c.merge ? " [merge] " : " ") + s + " (" + c.date + ")", c.sha];
-    })]]);
-  }).catch(function (e) {
-    cur.hidden = false; cur.className = "chip warn"; cur.textContent = "레포를 읽을 수 없음";
-    showError(e.message);
+    var o = new Option(label, r); o.title = r; sel.appendChild(o);
   });
+  sel.appendChild(new Option("다른 폴더 선택…", OTHER));
+  sel.value = selected || "";
 }
-function formIds() {
-  var ids = ["o_context", "o_function_context", "o_ignore_space", "o_path_map", "extraPrompt"];
-  ["src", "dst"].forEach(function (p) { FIELDS.forEach(function (f) { ids.push(p + "_" + f[0]); }); });
-  return ids;
+function fillRefs(sel, d, chosen, allowNone) {
+  sel.textContent = "";
+  if (allowNone) sel.appendChild(new Option("(머지 커밋 자체를 비교)", ""));
+  var add = function (label, arr) {
+    if (!arr.length) return;
+    var og = el("optgroup"); og.label = label;
+    arr.forEach(function (x) { og.appendChild(new Option(x, x)); });
+    sel.appendChild(og);
+  };
+  if (chosen && d.remotes.indexOf(chosen) < 0 && d.branches.indexOf(chosen) < 0 && d.tags.indexOf(chosen) < 0)
+    add("추천", [chosen]);
+  add("원격 브랜치", d.remotes); add("로컬 브랜치", d.branches); add("태그", d.tags);
+  sel.value = chosen || "";
 }
-function saveForm() {
-  var o = {};
-  formIds().forEach(function (id) { var e = $(id); o[id] = e.type === "checkbox" ? e.checked : e.value; });
-  try { localStorage.setItem("crossreview.form", JSON.stringify(o)); } catch (e) {}
+function loadRefs(p, repo) {
+  var reason = $(p + "_reason");
+  ["head", "base"].forEach(function (k) { $(p + "_" + k).textContent = ""; });
+  reason.textContent = ""; if (!repo) return Promise.resolve();
+  reason.textContent = "브랜치를 읽는 중…";
+  return api("refs", { repo: repo }).then(function (d) {
+    showError("");
+    var last = store("last." + p) || {};
+    fillRepos(p, d.repo);
+    fillRefs($(p + "_head"), d, d.suggest.head, false);
+    fillRefs($(p + "_base"), d, d.suggest.base, true);
+    reason.textContent = "자동 선택: " + d.suggest.reason;
+    store("last." + p, { repo: d.repo });
+    void last;
+  }).catch(function (e) { reason.textContent = ""; showError(e.message); });
 }
-function loadForm() {
-  var o = {};
-  try { o = JSON.parse(localStorage.getItem("crossreview.form") || "{}"); } catch (e) {}
-  formIds().forEach(function (id) {
-    if (!(id in o)) return;
-    var e = $(id);
-    if (e.type === "checkbox") e.checked = o[id]; else e.value = o[id];
-  });
-}
-function sideReq(p) {
-  var v = function (n) { return $(p + "_" + n).value.trim(); };
-  return { repo: v("repo") || ".", base: v("base") || null, head: v("head") || null,
-           commits: list(v("commit")), ranges: list(v("range")), grep: v("grep") || null,
-           pathspecs: list(v("pathspec")) };
-}
-$("btnRun").onclick = function () {
-  saveForm(); showError("");
-  var req = { src: sideReq("src"), dst: sideReq("dst"),
-              context: parseInt($("o_context").value, 10) || 0,
-              function_context: $("o_function_context").checked,
-              ignore_space: $("o_ignore_space").checked,
-              path_maps: list($("o_path_map").value) };
-  $("btnRun").disabled = true; $("busy").hidden = false;
-  api("run", req).then(setBundle)
-    .catch(function (e) { showError(e.message); })
-    .then(function () { $("btnRun").disabled = false; $("busy").hidden = true; });
-};
 
-// ---------------------------------------------------------------- 폴더 선택 창
+// 폴더 선택 창 (목록에 없는 레포를 고를 때만)
 var browseFor = null, browseCur = null;
-function openBrowser(p) { browseFor = p; $("modal").hidden = false; browseTo($(p + "_repo").value.trim()); }
+function openBrowser(p) { browseFor = p; $("modal").hidden = false; browseTo(""); }
 function browseTo(path) {
   api("browse", { path: path }).then(function (d) {
     browseCur = d; $("dirPath").value = d.path;
     $("dirUp").disabled = d.parent == null;
-    $("dirPick").disabled = !d.path;
-    $("dirHint").textContent = d.is_repo ? "git 레포입니다." : (d.path ? "git 레포가 아닙니다 (하위 폴더를 선택하세요)." : "드라이브를 선택하세요.");
+    $("dirPick").disabled = !d.is_repo;
+    $("dirHint").textContent = d.is_repo ? "git 레포입니다." : "git 레포 폴더로 들어가세요 (git 표시).";
     var box = $("dirs"); box.textContent = "";
     d.dirs.forEach(function (x) {
       var r = el("div"); r.appendChild(el("span", "", "📁 " + x.name));
@@ -379,110 +333,85 @@ function browseTo(path) {
       box.appendChild(r);
     });
     if (!d.dirs.length) box.appendChild(el("div", "empty", "하위 폴더 없음"));
-  }).catch(function (e) {
-    if (path) browseTo(""); else $("dirHint").textContent = e.message;
-  });
+  }).catch(function (e) { $("dirHint").textContent = e.message; });
 }
 $("dirUp").onclick = function () { if (browseCur && browseCur.parent != null) browseTo(browseCur.parent); };
 $("dirGo").onclick = function () { browseTo($("dirPath").value.trim()); };
 $("dirPath").onkeydown = function (e) { if (e.key === "Enter") browseTo(this.value.trim()); };
-$("dirCancel").onclick = function () { $("modal").hidden = true; };
-$("dirPick").onclick = function () {
-  $("modal").hidden = true;
-  $(browseFor + "_repo").value = browseCur.path; loadRefs(browseFor);
-};
+$("dirCancel").onclick = function () { $("modal").hidden = true; $(browseFor + "_repo").value = (store("last." + browseFor) || {}).repo || ""; };
+$("dirPick").onclick = function () { $("modal").hidden = true; loadRefs(browseFor, browseCur.path); };
 
-// ---------------------------------------------------------------- 상단 버튼
-$("btnConfig").onclick = function () { $("config").hidden = !$("config").hidden; };
-$("btnInfo").onclick = function () { $("info").hidden = !$("info").hidden; };
-$("btnOpen").onclick = function () { $("file").click(); };
-$("file").onchange = function () {
-  var f = this.files[0]; if (!f) return;
-  var rd = new FileReader();
-  rd.onload = function () {
-    try {
-      var d = JSON.parse(rd.result);
-      if (!d.pairs || !d.source || !d.target) throw new Error("crossreview bundle 형식이 아닙니다");
-      showError(""); setBundle(d);
-      if (TOKEN) api("load", d).then(function (r) {
-        bundle.run_id = r.run_id; bundle.saved_to = r.saved_to; renderInfo(); syncUrl(); loadRuns();
-      }).catch(function (e) { showError(e.message); });
-    } catch (e) { showError("JSON 을 읽을 수 없습니다: " + e.message); }
-  };
-  rd.readAsText(f, "utf-8"); this.value = "";
-};
-function download(name, text, type) {
-  var a = el("a");
-  a.href = URL.createObjectURL(new Blob([text], { type: type }));
-  a.download = name; a.click();
-  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+function sideReq(p) {
+  return { repo: $(p + "_repo").value, head: $(p + "_head").value || null, base: $(p + "_base").value || null,
+           commits: list($(p + "_commit").value), grep: $(p + "_grep").value.trim() || null };
 }
-$("btnSave").onclick = function () { download("crossreview-bundle.json", JSON.stringify(bundle, null, 2), "application/json"); };
+$("btnRun").onclick = function () {
+  showError("");
+  if (!$("src_repo").value || !$("dst_repo").value || $("src_repo").value === OTHER || $("dst_repo").value === OTHER) {
+    showError("원본과 대상 레포를 선택하세요."); return;
+  }
+  store("adv", { src_commit: $("src_commit").value, src_grep: $("src_grep").value,
+                 dst_commit: $("dst_commit").value, dst_grep: $("dst_grep").value, path_map: $("path_map").value });
+  $("btnRun").disabled = true; $("busy").hidden = false;
+  api("run", { src: sideReq("src"), dst: sideReq("dst"), path_maps: list($("path_map").value) })
+    .then(setBundle)
+    .catch(function (e) { showError(e.message); })
+    .then(function () { $("btnRun").disabled = false; $("busy").hidden = true; });
+};
+$("btnNew").onclick = function () { $("config").hidden = !$("config").hidden; };
 
-// ---------------------------------------------------------------- 요약 / 구간 정보
+// ================================================================ 결과 요약
 function chip(label, value, cls) {
   var c = el("span", "chip" + (cls ? " " + cls : ""), label + " ");
   c.appendChild(el("b", "", String(value)));
   return c;
 }
 function renderInfo() {
-  var chips = $("chips"); chips.textContent = "";
-  var body = $("infoBody"); body.textContent = "";
-  $("savedTo").hidden = true;
+  var chips = $("chips"), info = $("info");
+  chips.textContent = ""; info.textContent = ""; info.hidden = true;
   if (!bundle) return;
   var s = bundle.summary;
-  [chip("짝", s.paired), chip("동일", s.identical), chip("원본에만", s.source_only),
-   chip("대상에만", s.target_only)].forEach(function (c) { chips.appendChild(c); chips.appendChild(document.createTextNode(" ")); });
-  if (s.warnings) chips.appendChild(chip("경고", s.warnings, "warn"));
-  if (bundle.saved_to) { $("savedTo").hidden = false; $("savedTo").textContent = "저장됨: " + bundle.saved_to; $("savedTo").title = bundle.saved_to; }
-
+  [chip("동일", s.identical, "good"), chip("차이", s.paired - s.identical, s.paired - s.identical ? "warn" : ""),
+   chip("원본에만", s.source_only, s.source_only ? "warn" : ""), chip("대상에만", s.target_only)]
+    .forEach(function (c) { chips.appendChild(c); chips.appendChild(document.createTextNode(" ")); });
+  // 어떤 범위를 비교했는지 한 줄씩. 경고가 있으면 펼쳐서 보여준다
+  var warn = 0;
   [["source", "원본"], ["target", "대상"]].forEach(function (k) {
-    var sd = bundle[k[0]], card = el("div", "card"), h = el("h3", "", k[1]);
-    h.appendChild(el("span", "chip", sd.mode));
-    h.appendChild(el("span", "chip", "composed: " + sd.composed));
-    h.appendChild(el("span", "chip", "파일 " + sd.stats.files + "  +" + sd.stats.additions + " −" + sd.stats.deletions));
-    card.appendChild(h);
-    card.appendChild(el("div", "mono", sd.repo));
+    var sd = bundle[k[0]], d = el("details"), sm = el("summary");
+    var commits = 0; sd.segments.forEach(function (g) { commits += g.commits.length; });
+    sm.textContent = k[1] + ": " + sd.repo + " — " + sd.segments.map(function (g) { return g.how; }).join(" + ")
+                     + " (커밋 " + commits + "개, 파일 " + sd.stats.files + "개)";
+    d.appendChild(sm);
     var ul = el("ul");
-    sd.warnings.forEach(function (w) { ul.appendChild(el("li", "w", "⚠ " + w)); });
+    sd.warnings.forEach(function (w) { ul.appendChild(el("li", "w", "⚠ " + w)); warn++; });
     sd.notes.forEach(function (n) { ul.appendChild(el("li", "", n)); });
-    card.appendChild(ul);
-    sd.segments.forEach(function (sg, i) {
-      var d = el("details"), sm = el("summary", "", "구간 " + (i + 1) + ": " + sg.how + "  (커밋 " + sg.commits.length + "개)");
-      d.appendChild(sm);
-      var cl = el("ul", "mono");
-      sg.commits.forEach(function (c) {
-        cl.appendChild(el("li", "", c.sha.slice(0, 10) + (c.is_merge ? " [merge] " : " ") + c.subject + "  — " + c.author));
-      });
-      d.appendChild(cl); card.appendChild(d);
-    });
-    body.appendChild(card);
+    sd.segments.forEach(function (g) { g.commits.forEach(function (c) {
+      ul.appendChild(el("li", "mono", c.sha.slice(0, 10) + (c.is_merge ? " [merge] " : " ") + c.subject + " — " + c.author));
+    }); });
+    d.appendChild(ul); d.open = sd.warnings.length > 0;
+    info.appendChild(d);
   });
-  $("info").hidden = !(s.warnings > 0);      // 경고가 있으면 펼쳐서 보여준다
+  info.hidden = false;
+  if (warn) chips.appendChild(chip("경고", warn, "warn"));
 }
 
-// ---------------------------------------------------------------- 파일 목록
-function category(p) {
-  if (p.kind !== "paired") return "only";
-  return p.identical ? "same" : "diff";
-}
+// ================================================================ 파일 목록
+function category(p) { return p.kind !== "paired" ? "only" : (p.identical ? "same" : "diff"); }
 function llmOf(i) { return bundle && bundle.llm_results ? bundle.llm_results[String(i)] : null; }
 function renderList() {
   var box = $("list"); box.textContent = ""; state.visible = [];
-  if (!bundle) { box.appendChild(el("div", "empty", TOKEN ? "'추출 설정'에서 diff 를 추출하세요." : "'JSON 열기'로 bundle 을 불러오세요.")); return; }
-  var q = state.q.toLowerCase();
   bundle.pairs.forEach(function (p, i) {
-    var cat = category(p), name = (p.source_path || "") + " " + (p.target_path || "");
+    var cat = category(p);
     if (state.filter !== "all" && state.filter !== cat) return;
-    if (q && name.toLowerCase().indexOf(q) < 0) return;
     state.visible.push(i);
     var it = el("div", "item c-" + cat + (i === state.sel ? " sel" : ""));
     it.dataset.i = i;
     var b = cat === "same" ? el("span", "badge b-same", "동일")
           : cat === "diff" ? el("span", "badge b-diff", Math.round(p.similarity * 100) + "%")
           : el("span", "badge b-only", p.kind === "source_only" ? "원본만" : "대상만");
-    var nm = el("div", "nm"), a = el("div", "", "‎" + (p.source_path || p.target_path));
-    nm.appendChild(a); nm.title = name.trim();
+    var nm = el("div", "nm");
+    nm.appendChild(el("div", "", "‎" + (p.source_path || p.target_path)));
+    nm.title = ((p.source_path || "") + " " + (p.target_path || "")).trim();
     if (p.kind === "paired" && p.source_path !== p.target_path) nm.appendChild(el("div", "sub", "‎→ " + p.target_path));
     it.appendChild(b); it.appendChild(nm);
     if (llmOf(i)) it.appendChild(el("span", "badge b-ai", "LLM"));
@@ -491,7 +420,6 @@ function renderList() {
   });
   if (!state.visible.length) box.appendChild(el("div", "empty", "해당하는 파일이 없습니다."));
 }
-$("q").oninput = function () { state.q = this.value; renderList(); };
 $("filter").onclick = function (e) {
   var f = e.target.dataset.f; if (!f) return;
   state.filter = f;
@@ -499,20 +427,18 @@ $("filter").onclick = function (e) {
   renderList();
 };
 document.addEventListener("keydown", function (e) {
-  if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || !$("modal").hidden) return;
+  if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || !$("modal").hidden || !bundle) return;
   if (e.key === "n") return jump(1);
   if (e.key === "p") return jump(-1);
-  if (!state.visible.length) return;
   var d = (e.key === "ArrowDown" || e.key === "j") ? 1 : (e.key === "ArrowUp" || e.key === "k") ? -1 : 0;
-  if (!d) return;
+  if (!d || !state.visible.length) return;
   e.preventDefault();
   var at = state.visible.indexOf(state.sel);
-  var nx = at < 0 ? 0 : Math.min(state.visible.length - 1, Math.max(0, at + d));
-  select(state.visible[nx]);
+  select(state.visible[at < 0 ? 0 : Math.min(state.visible.length - 1, Math.max(0, at + d))]);
   var cur = document.querySelector(".item.sel"); if (cur) cur.scrollIntoView({ block: "nearest" });
 });
 
-// ---------------------------------------------------------------- diff 뷰
+// ================================================================ diff 비교
 function norm(l) { return l[0] + l.slice(1).split(/\s+/).filter(Boolean).join(" "); }
 function changedSet(f) {
   var s = {};
@@ -521,7 +447,7 @@ function changedSet(f) {
   }); });
   return s;
 }
-function missLines(f, other) {            // 반대쪽에 없는 변경 라인들 (글자 단위 비교 상대 후보)
+function missLines(f, other) {
   var out = [];
   if (f) f.hunks.forEach(function (h) { h.lines.forEach(function (l) {
     if ((l[0] === "+" || l[0] === "-") && l.slice(1).trim() && !other[norm(l)]) out.push(l);
@@ -529,19 +455,18 @@ function missLines(f, other) {            // 반대쪽에 없는 변경 라인�
   return out;
 }
 function charDiff(line, cands) {
-  // 같은 부호의 후보 중 가장 비슷한 줄을 찾아, 앞뒤 공통 부분을 뺀 '달라진 구간' [s, e) 을 돌려준다
+  // 같은 부호의 가장 비슷한 줄과 비교해 달라진 구간 [s, e) 을 찾는다
   var best = null, bs = 0, a = line.slice(1);
   cands.forEach(function (c) {
     if (c[0] !== line[0]) return;
     var b = c.slice(1), n = Math.min(a.length, b.length), pre = 0, suf = 0;
     while (pre < n && a[pre] === b[pre]) pre++;
     while (suf < n - pre && a[a.length - 1 - suf] === b[b.length - 1 - suf]) suf++;
-    var lead = a.length - a.replace(/^\s+/, "").length;      // 들여쓰기는 점수에서 제외
+    var lead = a.length - a.replace(/^\s+/, "").length;
     var score = Math.max(0, pre - lead) + suf;
     if (score > bs) { bs = score; best = [pre, a.length - suf]; }
   });
-  if (!best || bs < 0.4 * a.trim().length) return null;
-  return best;
+  return (!best || bs < 0.4 * a.trim().length) ? null : best;
 }
 function findFile(side, path) {
   if (!path) return null;
@@ -552,18 +477,14 @@ function findFile(side, path) {
 function renderPane(titleEl, codeEl, f, otherFile, label) {
   titleEl.textContent = ""; codeEl.textContent = "";
   titleEl.appendChild(el("span", "chip", label));
-  if (!f) {
-    codeEl.appendChild(el("div", "empty", "이 쪽에는 해당 파일의 변경이 없습니다."));
-    return 0;
-  }
+  if (!f) { codeEl.appendChild(el("div", "empty", "이 쪽에는 해당 파일의 변경이 없습니다.")); return 0; }
   var path = el("span", "path", f.path); path.title = f.path;
   titleEl.appendChild(path);
   titleEl.appendChild(el("span", "st", f.status + (f.old_path ? " (← " + f.old_path + ")" : "") + "  +" + f.additions + " −" + f.deletions));
   if (f.binary) { codeEl.appendChild(el("div", "empty", "바이너리 파일")); return 0; }
   if (!f.hunks.length) { codeEl.appendChild(el("div", "empty", "내용 변경 없음 (이름/모드만 변경)")); return 0; }
-  var other = changedSet(otherFile), mine = changedSet(f);
-  var cands = otherFile ? missLines(otherFile, mine) : [];
-  var onlyChanged = $("onlyChanged").checked, miss = 0, tb = el("table");
+  var other = changedSet(otherFile), cands = otherFile ? missLines(otherFile, changedSet(f)) : [];
+  var miss = 0, tb = el("table");
   f.hunks.forEach(function (h) {
     var tr = el("tr", "h"), td = el("td", "c");
     td.colSpan = 3;
@@ -575,18 +496,18 @@ function renderPane(titleEl, codeEl, f, otherFile, label) {
       var k = l[0], r = el("tr"), on = "", nn = "", c = el("td", "c");
       if (k === "+") { nn = n++; r.className = "a"; }
       else if (k === "-") { on = o++; r.className = "d"; }
-      else if (k === " ") { on = o++; nn = n++; if (onlyChanged) return; }
-      else { if (onlyChanged) return; }
-      var isMiss = otherFile && (k === "+" || k === "-") && l.slice(1).trim() && !other[norm(l)];
-      if (isMiss) {
+      else if (k === " ") { on = o++; nn = n++; }
+      c.textContent = l;
+      if (otherFile && (k === "+" || k === "-") && l.slice(1).trim() && !other[norm(l)]) {
         r.className += " miss"; miss++;
         var rg = charDiff(l, cands);
         if (rg && rg[1] > rg[0]) {
+          c.textContent = "";
           c.appendChild(document.createTextNode(l.slice(0, 1 + rg[0])));
           c.appendChild(el("span", "x", l.slice(1 + rg[0], 1 + rg[1])));
           c.appendChild(document.createTextNode(l.slice(1 + rg[1])));
-        } else c.textContent = l;
-      } else c.textContent = l;
+        }
+      }
       r.appendChild(el("td", "n", on)); r.appendChild(el("td", "n", nn)); r.appendChild(c);
       tb.appendChild(r);
     });
@@ -603,35 +524,29 @@ function select(i) {
   var sum = $("vsum"); sum.className = "chip";
   if (p.kind === "source_only") { sum.textContent = "원본에만 있는 변경 — 이식 누락 여부 확인"; sum.classList.add("warn"); }
   else if (p.kind === "target_only") { sum.textContent = "대상에만 있는 변경 — 원본에 없는 추가 수정"; sum.classList.add("warn"); }
-  else if (p.identical) { sum.textContent = "변경 라인 동일 (공백 제외)"; sum.classList.add("good"); }
-  else { sum.textContent = "유사도 " + Math.round(p.similarity * 100) + "% · 원본에만 " + m1 + "줄 / 대상에만 " + m2 + "줄"
-         + (p.status_mismatch ? " · 상태 다름" : "") + " · 매칭: " + p.match_by; sum.classList.add("warn"); }
+  else if (p.identical) { sum.textContent = "변경 내용 동일 (공백 제외)"; sum.classList.add("good"); }
+  else { sum.textContent = "유사도 " + Math.round(p.similarity * 100) + "% · 원본에만 " + m1 + "줄 / 대상에만 " + m2 + "줄"; sum.classList.add("warn"); }
   $("cS").scrollTop = $("cT").scrollTop = 0;
   $("btnPrev").disabled = $("btnNext").disabled = !(m1 + m2);
   renderLlm();
 }
-$("onlyChanged").onchange = function () { if (state.sel >= 0) select(state.sel); };
-
-function jump(dir) {                      // 다음/이전 '반대쪽에 없는 변경' 으로 이동
+function jump(dir) {
   var rows = Array.prototype.slice.call(document.querySelectorAll("#cS tr.miss, #cT tr.miss"));
   if (!rows.length) return;
   rows.sort(function (a, b) { return a.offsetTop - b.offsetTop; });
   var cur = document.querySelector("tr.cur"), at = rows.indexOf(cur);
   if (cur) cur.classList.remove("cur");
-  var nx = rows[(at + dir + rows.length) % rows.length];
-  if (at < 0) nx = dir > 0 ? rows[0] : rows[rows.length - 1];
+  var nx = at < 0 ? (dir > 0 ? rows[0] : rows[rows.length - 1]) : rows[(at + dir + rows.length) % rows.length];
   nx.classList.add("cur");
   var box = nx.closest(".code");
   box.scrollTop = Math.max(0, nx.offsetTop - box.clientHeight / 2);
 }
 $("btnNext").onclick = function () { jump(1); };
 $("btnPrev").onclick = function () { jump(-1); };
-
-// 스크롤 동기화 (비율 기준)
 var lock = false;
-function sync(a, b) {
+function sync(a, b) {                     // 좌우 스크롤 맞추기 (비율 기준)
   a.addEventListener("scroll", function () {
-    if (!$("syncScroll").checked || lock) return;
+    if (lock) return;
     lock = true;
     var ra = a.scrollHeight - a.clientHeight, rb = b.scrollHeight - b.clientHeight;
     b.scrollTop = ra > 0 ? a.scrollTop / ra * rb : 0;
@@ -641,20 +556,19 @@ function sync(a, b) {
 }
 sync($("cS"), $("cT")); sync($("cT"), $("cS"));
 
-// ---------------------------------------------------------------- LLM 패널
+// ================================================================ LLM
 function pairLabel(i) { var p = bundle.pairs[i]; return p.source_path || p.target_path; }
 function renderLlm() {
   var has = bundle && state.sel >= 0, r = has ? llmOf(state.sel) : null;
   $("btnLlmOne").disabled = !has || state.busy;
   $("btnLlmAll").disabled = !bundle || state.busy;
-  $("btnLlmSave").disabled = !r;
   $("llmOut").className = "";
   if (r) {
     $("llmMeta").textContent = pairLabel(state.sel) + " · " + (r.at || "") + (r.saved_to ? " · 저장: " + r.saved_to : "");
     $("llmMeta").title = r.saved_to || "";
     $("llmOut").textContent = r.result;
   } else if (has && state.preview && state.preview.i === state.sel) {
-    $("llmMeta").textContent = "LLM 훅이 연결되지 않았습니다 — 아래는 전송될 프롬프트 미리보기입니다. (llm_hook.py 를 만들면 실제로 호출됩니다)";
+    $("llmMeta").textContent = "LLM 이 연결되지 않아 전송될 프롬프트만 표시합니다 (llm_hook.py 를 만들면 실제로 호출됩니다).";
     $("llmOut").className = "mono"; $("llmOut").textContent = state.preview.prompt;
   } else {
     $("llmMeta").textContent = has ? pairLabel(state.sel) + " · 아직 분석하지 않았습니다." : "결과가 여기에 표시됩니다.";
@@ -665,56 +579,36 @@ function runLlm(i) {
   return api("llm", { run_id: bundle.run_id, index: i, extra_prompt: $("extraPrompt").value }).then(function (d) {
     if (d.no_hook) { state.preview = { i: i, prompt: d.prompt }; return false; }
     state.preview = null;
-    $("hookChip").textContent = "훅 연결됨" + (d.hook ? ": " + d.hook : ""); $("hookChip").className = "chip good";
     if (!bundle.llm_results) bundle.llm_results = {};
     bundle.llm_results[String(i)] = d;
     return true;
   });
 }
-function llmBusy(on, msg) {
-  state.busy = on; $("btnLlmStop").hidden = !on; $("llmStatus").textContent = msg || "";
-  renderLlm();
-}
+function llmBusy(on, msg) { state.busy = on; $("btnLlmStop").hidden = !on; $("llmStatus").textContent = msg || ""; renderLlm(); }
 $("btnLlmOne").onclick = function () {
-  var i = state.sel; saveForm(); llmBusy(true, "분석 중… " + pairLabel(i));
-  runLlm(i).then(function (ok) { llmBusy(false, ok ? "완료" : ""); if (ok) { renderList(); } })
+  var i = state.sel; store("prompt", $("extraPrompt").value); llmBusy(true, "분석 중… " + pairLabel(i));
+  runLlm(i).then(function (ok) { llmBusy(false, ok ? "완료" : ""); if (ok) renderList(); })
     .catch(function (e) { llmBusy(false, ""); $("llmMeta").textContent = "오류"; $("llmOut").textContent = e.message; });
 };
 $("btnLlmAll").onclick = function () {
-  var todo = [];
+  var todo = [], done = 0;
   bundle.pairs.forEach(function (p, i) { if (category(p) !== "same") todo.push(i); });
   if (!todo.length) { $("llmStatus").textContent = "차이 있는 파일이 없습니다."; return; }
-  saveForm(); state.stop = false;
-  var done = 0;
+  store("prompt", $("extraPrompt").value); state.stop = false;
   (function next() {
     if (state.stop || !todo.length) { llmBusy(false, (state.stop ? "중지됨 · " : "완료 · ") + done + "개 분석"); renderList(); return; }
     var i = todo.shift();
     llmBusy(true, "분석 중… (" + (done + 1) + "/" + (done + 1 + todo.length) + ") " + pairLabel(i));
     select(i);
     runLlm(i).then(function (ok) {
-      if (!ok) { llmBusy(false, ""); return; }          // 훅 없음: 미리보기만 보여주고 멈춘다
-      done++; renderList(); if (state.sel === i) renderLlm(); next();
+      if (!ok) { llmBusy(false, ""); return; }
+      done++; renderList(); next();
     }).catch(function (e) { llmBusy(false, "오류로 중단: " + e.message); renderList(); });
   })();
 };
 $("btnLlmStop").onclick = function () { state.stop = true; $("llmStatus").textContent = "현재 파일까지만 하고 중지합니다…"; };
-$("btnLlmSave").onclick = function () {
-  var r = llmOf(state.sel), p = bundle.pairs[state.sel];
-  download((pairLabel(state.sel).split("/").pop() || "review") + ".llm.md",
-    "# LLM 리뷰\n\n- 원본: " + (p.source_path || "(없음)") + "\n- 대상: " + (p.target_path || "(없음)") + "\n- 시각: " + (r.at || "")
-    + "\n\n## 추가 프롬프트\n\n" + (r.extra_prompt || "(없음)") + "\n\n## 결과\n\n" + r.result + "\n", "text/markdown");
-};
-$("btnLlmToggle").onclick = function () {
-  var c = $("llm").classList.toggle("closed"); this.textContent = c ? "펼치기" : "접기";
-};
-$("extraPrompt").onchange = saveForm;
 
-// ---------------------------------------------------------------- 이전 결과 / 공유 링크
-function syncUrl() {
-  var id = bundle && bundle.run_id;
-  $("btnLink").hidden = !(TOKEN && id);
-  if (TOKEN && id && window.history.replaceState) history.replaceState(null, "", "?run=" + encodeURIComponent(id));
-}
+// ================================================================ 이전 결과 / 공유 링크
 function loadRuns() {
   api("runs").then(function (d) {
     var sel = $("runs"); sel.hidden = !d.runs.length;
@@ -732,38 +626,47 @@ $("btnLink").onclick = function () {
   else { var t = el("textarea"); t.value = location.href; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); done(); }
 };
 
-// ---------------------------------------------------------------- 시작
+// ================================================================ 시작
 function setBundle(b) {
   bundle = b; state.sel = -1; state.preview = null;
-  $("btnSave").disabled = !b;
-  renderInfo(); renderList();
-  ["tS", "tT", "cS", "cT"].forEach(function (id) { $(id).textContent = ""; });
-  $("vsum").className = "chip"; $("vsum").textContent = "파일을 선택하세요";
-  $("btnPrev").disabled = $("btnNext").disabled = true;
-  if (!TOKEN) $("llm").hidden = !(b && b.llm_results && Object.keys(b.llm_results).length);
-  renderLlm(); syncUrl();
-  if (TOKEN && b) loadRuns();
-  if (b) {
-    $("config").hidden = true;
-    var first = -1;                       // 차이가 있는 첫 파일부터 보여준다
-    b.pairs.some(function (p, i) { if (category(p) !== "same") { first = i; return true; } return false; });
-    if (first < 0 && b.pairs.length) first = 0;
-    if (first >= 0) select(first);
-  }
+  $("result").hidden = !b;
+  $("btnNew").hidden = !(TOKEN && b);
+  $("btnLink").hidden = !(TOKEN && b && b.run_id);
+  renderInfo();
+  if (!b) return;
+  if (TOKEN && b.run_id && window.history.replaceState) history.replaceState(null, "", "?run=" + encodeURIComponent(b.run_id));
+  if (TOKEN) { $("config").hidden = true; loadRuns(); }
+  renderList();
+  var first = -1;                          // 차이가 있는 첫 파일부터
+  b.pairs.some(function (p, i) { if (category(p) !== "same") { first = i; return true; } return false; });
+  if (first < 0 && b.pairs.length) first = 0;
+  if (first >= 0) select(first); else { $("tS").textContent = $("tT").textContent = ""; renderLlm(); }
 }
+
 if (TOKEN) {
-  loadForm(); recentRepos();
-  $("outChip").textContent = "저장 폴더: " + HOOK.out; $("outChip").title = HOOK.out;
-  loadRuns();
-  $("hookChip").textContent = HOOK && HOOK.path ? "훅 연결됨: " + HOOK.path : "훅 없음 (프롬프트 미리보기만 가능)";
+  $("hookChip").textContent = HOOK && HOOK.path ? "연결됨" : "미연결 (프롬프트 미리보기)";
+  $("hookChip").title = HOOK && HOOK.path ? HOOK.path : "llm_hook.py 를 만들면 연결됩니다";
   $("hookChip").className = "chip " + (HOOK && HOOK.path ? "good" : "warn");
-  ["src", "dst"].forEach(loadRefs);
-} else {
-  $("btnConfig").hidden = true; $("llmLeft").hidden = true; $("hookChip").hidden = true;
-  $("llmBody").style.gridTemplateColumns = "1fr";
+  $("extraPrompt").value = store("prompt") || "";
+  var adv = store("adv") || {};
+  ["src_commit", "src_grep", "dst_commit", "dst_grep", "path_map"].forEach(function (k) { $(k).value = adv[k] || ""; });
+  $("adv").open = Object.keys(adv).some(function (k) { return adv[k]; });
+  $("config").hidden = !!bundle;
+  ["src", "dst"].forEach(function (p) { fillRepos(p, ""); });
+  api("repos").then(function (d) {
+    state.repos = d.repos; state.roots = d.roots;
+    ["src", "dst"].forEach(function (p) {          // 지난번에 고른 레포를 다시 선택
+      var last = (store("last." + p) || {}).repo;
+      fillRepos(p, last || "");
+      if (last) loadRefs(p, last);
+    });
+  }).catch(function (e) { showError(e.message); });
+  loadRuns();
+} else {                                           // report.html: 보기 전용
+  $("llmLeft").hidden = true; $("llm").style.gridTemplateColumns = "1fr";
+  $("llm").hidden = !(bundle && bundle.llm_results && Object.keys(bundle.llm_results).length);
 }
 setBundle(bundle);
-if (TOKEN && !bundle) $("config").hidden = false;
 </script>
 </body>
 </html>

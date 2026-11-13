@@ -24,7 +24,7 @@ from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
 
 from .gitcmd import GitError, Repo
-from .resolve import ResolveError
+from .resolve import ResolveError, DEFAULT_BASES
 from .collect import DiffOptions
 from .bundle import build_side, build_bundle
 from .export import render_html, write_html, save_run, save_llm, unit_name  # noqa: F401
@@ -56,8 +56,50 @@ def run_request(req, git="git"):
     return build_bundle(side("src", "source"), side("dst", "target"), maps)
 
 
-def list_refs(repo_path, rev=None, git="git"):
-    """브랜치/태그/최근 커밋 목록 (UI 의 선택 상자용)."""
+def _is_ancestor(repo, a, b):
+    return repo.ok(["merge-base", "--is-ancestor", a, b])
+
+
+def suggest(repo, current):
+    """레포만 골랐을 때 쓸 head(작업 브랜치)와 base(PR 대상 브랜치)를 고른다.
+
+    base : origin/HEAD 가 가리키는 브랜치 > origin/main > origin/master > ... (resolve.DEFAULT_BASES)
+    head : 현재 브랜치. 단 현재 브랜치가 base 에 이미 다 들어가 있으면(main 을 체크아웃해 둔 경우 등)
+           base 에 아직 머지되지 않은 브랜치 중 가장 최근에 커밋된 것.
+    """
+    base = None
+    code, out, _ = repo.run_raw(["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"])
+    if code == 0 and out.strip():
+        base = out.decode().strip()
+    if not base:
+        for cand in DEFAULT_BASES:
+            if not cand.endswith("/HEAD") and repo.ok(["rev-parse", "--verify", "--quiet",
+                                                         cand + "^{commit}"]):
+                base = cand
+                break
+    head = current or "HEAD"
+    reason = "현재 체크아웃된 브랜치"
+    if base and (not current or current == base.split("/", 1)[-1]
+                 or _is_ancestor(repo, "HEAD", base)):
+        code, out, _ = repo.run_raw(["for-each-ref", "--sort=-committerdate", "--count=1",
+                                     "--no-merged=" + base, "--format=%(refname:short)",
+                                     "refs/heads", "refs/remotes"])
+        cand = out.decode().strip() if code == 0 else ""
+        if cand and not cand.endswith("/HEAD"):
+            head, reason = cand, "%s 에 아직 머지되지 않은 가장 최근 브랜치" % base
+        else:
+            # 진행 중인 브랜치가 없으면 base 의 마지막 PR(머지 커밋)을 보여준다
+            code, out, _ = repo.run_raw(["rev-list", "--first-parent", "--merges", "-n", "1", base])
+            merge = out.decode().strip() if code == 0 else ""
+            if merge:
+                head = merge[:12]
+                reason = "진행 중인 브랜치가 없어 %s 의 마지막 머지(PR) %s 를 사용" % (base, merge[:10])
+                base = None                                # 머지 커밋 자체의 diff 로 처리
+    return {"head": head, "base": base, "reason": reason}
+
+
+def list_refs(repo_path, git="git"):
+    """브랜치 목록 + 자동 추천 (UI 의 선택 상자용)."""
     repo = Repo(repo_path or ".", git=git)
 
     def refs(ns):
@@ -65,26 +107,48 @@ def list_refs(repo_path, rev=None, git="git"):
                                        "--format=%(refname:short)", ns])
                 if not r.endswith("/HEAD") and r != "origin"]
     code, out, _ = repo.run_raw(["symbolic-ref", "--quiet", "--short", "HEAD"])
-    target = rev or "HEAD"
-    if target.startswith("-") or not repo.ok(["rev-parse", "--verify", "--quiet", target + "^{commit}"]):
-        target = "HEAD"
-    commits = []
-    code2, log, _ = repo.run_raw(["log", "-n", "100", "--format=%h%x1f%p%x1f%s%x1f%an%x1f%ad",
-                                  "--date=short", target])
-    if code2 == 0:
-        for line in log.decode("utf-8", "replace").splitlines():
-            p = (line.split("\x1f") + [""] * 5)[:5]
-            commits.append({"sha": p[0], "merge": len(p[1].split()) > 1, "subject": p[2],
-                            "author": p[3], "date": p[4]})
-    return {"repo": repo.path, "current": out.decode().strip() if code == 0 else None,
+    current = out.decode().strip() if code == 0 else None
+    return {"repo": repo.path, "current": current,
             "branches": refs("refs/heads"), "remotes": refs("refs/remotes"),
-            "tags": refs("refs/tags")[:200], "commits_of": target, "commits": commits}
+            "tags": refs("refs/tags")[:200], "suggest": suggest(repo, current)}
+
+
+SKIP_DIRS = set(["node_modules", "__pycache__", "venv", ".venv", "build", "out", "dist",
+                 "AppData", "Library", "Windows", "Program Files", "Program Files (x86)"])
+
+
+def find_repos(roots, max_depth=3, max_dirs=4000):
+    """roots 아래의 git 레포 목록 (화면의 레포 선택 상자용). 레포 안으로는 더 내려가지 않는다."""
+    found, seen = [], [0]
+
+    def walk(path, depth):
+        if seen[0] >= max_dirs:
+            return
+        seen[0] += 1
+        if os.path.exists(os.path.join(path, ".git")):
+            found.append(path)
+            return
+        if depth >= max_depth:
+            return
+        try:
+            names = sorted(os.listdir(path), key=lambda n: n.lower())
+        except OSError:
+            return
+        for n in names:
+            if n.startswith((".", "$")) or n in SKIP_DIRS:
+                continue
+            full = os.path.join(path, n)
+            if os.path.isdir(full) and not os.path.islink(full):
+                walk(full, depth + 1)
+    for r in roots:
+        walk(r, 0)
+    return found
 
 
 def browse(path):
     """폴더 선택 창용 디렉터리 목록."""
     if not path:
-        path = os.getcwd()
+        path = os.path.expanduser("~")
     if path == "::drives":
         drives = ["%s:\\" % d for d in string.ascii_uppercase if os.path.isdir("%s:\\" % d)]
         return {"path": "", "parent": None, "is_repo": False,
@@ -285,7 +349,12 @@ class _Handler(BaseHTTPRequestHandler):
     # --- API
     def api_refs(self, req):
         sv = self.server
-        return list_refs(sv.check_path(req.get("repo")), req.get("rev"), git=sv.git)
+        return list_refs(sv.check_path(req.get("repo")), git=sv.git)
+
+    def api_repos(self, req):
+        sv = self.server
+        roots = sv.roots or [os.path.expanduser("~")]
+        return {"repos": find_repos(roots), "roots": roots}
 
     def api_browse(self, req):
         sv = self.server

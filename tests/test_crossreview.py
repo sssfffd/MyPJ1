@@ -284,9 +284,9 @@ class Scenarios(unittest.TestCase):
         r.git("tag", "v1.0")
         refs = list_refs(r.path)
         self.assertEqual(refs["current"], "feat")
+        self.assertEqual((refs["suggest"]["head"], refs["suggest"]["base"]), ("feat", "main"))
         self.assertEqual(sorted(refs["branches"]), ["feat", "main"])
         self.assertEqual(refs["tags"], ["v1.0"])
-        self.assertEqual(refs["commits"][0]["subject"], "feature")
         d = browse(self.root)
         self.assertEqual([(x["name"], x["repo"]) for x in d["dirs"]], [("r", True)])
 
@@ -381,6 +381,35 @@ class Scenarios(unittest.TestCase):
         finally:
             srv.serve = orig
             os.chdir(cwd)
+
+    # 15) 레포만 고르면 브랜치가 자동으로 정해진다
+    def test_suggest_head_and_base(self):
+        from crossreview.server import list_refs, find_repos, run_request
+        r = self.r
+        r.git("checkout", "-q", "-b", "old")
+        r.sub("app.c", "line 3\n", "line 3 OLD\n"); r.commit("old work")
+        r.git("checkout", "-q", "main")
+        r.git("merge", "-q", "--no-ff", "-m", "Merge old", "old")
+        r.git("checkout", "-q", "-b", "feat")
+        r.sub("app.c", "line 5\n", "line 5 NEW\n"); r.commit("new work")
+        r.git("checkout", "-q", "main")                  # main 을 체크아웃해 둔 상태
+        sg = list_refs(r.path)["suggest"]
+        self.assertEqual((sg["head"], sg["base"]), ("feat", "main"))   # 머지 안 된 최근 브랜치
+        b = run_request({"src": {"repo": r.path, "head": sg["head"], "base": sg["base"]},
+                         "dst": {"repo": r.path, "head": sg["head"], "base": sg["base"]}})
+        self.assertEqual(added(b["source"]), ["line 5 NEW"])
+
+        r.git("merge", "-q", "--no-ff", "-m", "Merge feat", "feat")   # 다 머지됨
+        sg = list_refs(r.path)["suggest"]
+        self.assertIsNone(sg["base"])                    # 마지막 머지 커밋 자체를 비교
+        b = run_request({"src": {"repo": r.path, "head": sg["head"]},
+                         "dst": {"repo": r.path, "head": sg["head"]}})
+        self.assertEqual(added(b["source"]), ["line 5 NEW"])
+
+        os.makedirs(os.path.join(self.root, "group", "sub"))
+        TmpRepo(os.path.join(self.root, "group"), "inner")
+        self.assertEqual(find_repos([self.root]),
+                         [os.path.join(self.root, "group", "inner"), r.path])
 
     def test_rename_binary_and_root_commit(self):
         r = self.r
