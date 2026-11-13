@@ -263,7 +263,7 @@ class Scenarios(unittest.TestCase):
         side = {"repo": r.path, "base": "main", "head": "feat"}
         b = run_request({"src": side, "dst": side, "context": 1, "path_maps": []})
         self.assertEqual(b["summary"]["identical"], 1)
-        html = render_html(b, token="tok")
+        html = render_html(b, token="tok", hook={"path": None, "out": "x"})
         self.assertIn('var TOKEN = "tok";', html)
         self.assertNotIn("</script><b>X", html)                # 스크립트 탈출 방지
         out = os.path.join(self.root, "r.html")
@@ -272,6 +272,48 @@ class Scenarios(unittest.TestCase):
             self.assertIn("var TOKEN = null;", fp.read())
         with self.assertRaises(ResolveError):
             run_request({"src": side, "dst": side, "path_maps": ["bad"]})
+
+    # 11) 레포/브랜치 선택용 목록, 파일 저장, LLM 훅
+    def test_refs_browse_export_llm(self):
+        from crossreview.server import run_request, list_refs, browse
+        from crossreview.export import save_run, save_llm
+        from crossreview import llm
+        r = self.r
+        r.git("checkout", "-q", "-b", "feat")
+        r.sub("app.c", "line 5\n", "line 5 X\n"); r.commit("feature")
+        r.git("tag", "v1.0")
+        refs = list_refs(r.path)
+        self.assertEqual(refs["current"], "feat")
+        self.assertEqual(sorted(refs["branches"]), ["feat", "main"])
+        self.assertEqual(refs["tags"], ["v1.0"])
+        self.assertEqual(refs["commits"][0]["subject"], "feature")
+        d = browse(self.root)
+        self.assertEqual([(x["name"], x["repo"]) for x in d["dirs"]], [("r", True)])
+
+        side = {"repo": r.path, "base": "main", "head": "feat"}
+        b = run_request({"src": side, "dst": side})
+        out = os.path.join(self.root, "out")
+        save_run(b, out)
+        self.assertEqual(sorted(os.listdir(out)), ["bundle.json", "diffs", "report.html"])
+        self.assertEqual(sorted(os.listdir(os.path.join(out, "diffs"))),
+                         ["0001_app.c.source.diff", "0001_app.c.target.diff"])
+
+        req = llm.build_request(b, 0, u"예외 처리만 봐줘")
+        self.assertIn("+line 5 X", req["prompt"])
+        self.assertIn(u"예외 처리만 봐줘", req["prompt"])
+        hook = os.path.join(self.root, "llm_hook.py")
+        with io.open(hook, "w", encoding="utf-8") as fp:
+            fp.write(u"def review(request):\n    return u'결과: ' + request['pair']['source_path']\n")
+        self.assertEqual(llm.find_hook(hook), hook)
+        text = llm.call_hook(hook, req)
+        self.assertEqual(text, u"결과: app.c")
+        rec = {"result": text, "extra_prompt": req["extra_prompt"], "at": "t"}
+        b["llm_results"] = {"0": rec}
+        path = save_llm(b, out, 0, rec)
+        with io.open(path, encoding="utf-8") as fp:
+            self.assertIn(u"결과: app.c", fp.read())
+        with io.open(os.path.join(out, "bundle.json"), encoding="utf-8") as fp:
+            self.assertEqual(json.load(fp)["llm_results"]["0"]["result"], text)
 
     def test_rename_binary_and_root_commit(self):
         r = self.r

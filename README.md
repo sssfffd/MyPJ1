@@ -34,17 +34,62 @@ python crossreview.pyz --src-... -o bundle.json     # CLI
 ## UI
 
 ```bash
-python crossreview.pyz                         # 화면에서 레포/브랜치 입력 후 "diff 추출"
-python crossreview.pyz --src-... --dst-... --ui      # 추출 결과를 바로 화면으로
+python crossreview.pyz                         # UI 실행 (Edge/Chrome 이 있으면 주소창 없는 앱 창으로 열림)
+python crossreview.pyz --src-... --dst-... --ui      # CLI 로 추출한 결과를 바로 화면으로
 python crossreview.pyz --src-... --dst-... --html report.html   # 서버 없이 열리는 HTML 1개 (공유용)
 ```
 
-- 왼쪽: 파일 짝 목록 — `동일` / 유사도 % / `원본만`(이식 누락 의심) / `대상만`, 필터와 검색
-- 오른쪽: 원본 diff 와 대상 diff 를 나란히 표시. **반대쪽에 없는 변경 라인은 노란색**으로 강조
+**추출 설정**
+- 레포: "폴더 선택…" 으로 폴더를 탐색해 고르거나(git 레포는 `git` 표시), 최근 사용한 레포 목록에서 선택
+- base / head: 레포를 고르면 원격·로컬 브랜치와 태그가 선택 상자에 채워짐 (직접 입력도 가능)
+- commit: head 기준 최근 커밋 100개에서 골라 추가 (머지 커밋은 `[merge]` 표시)
+- "diff 추출" 을 누르면 화면에 표시되고 동시에 **파일로 저장**됨 (아래 "저장되는 파일")
+
+**diff 비교**
+- 왼쪽 목록: `동일`(초록) / 유사도 %(노랑) / `원본만`·`대상만`(빨강), 필터·검색, ↑/↓ 또는 j/k 로 이동
+- 오른쪽: 원본 diff 와 대상 diff 를 나란히 표시
+  - 초록 = 추가, 빨강 = 삭제 (양쪽에 똑같이 있는 변경)
+  - **노란 줄 = 반대쪽에 없는 변경**, 그 안의 **주황 글자 = 비슷한 줄과 비교해 실제로 달라진 부분**
+  - "▼ 다음 차이 / ▲ 이전 차이" (단축키 n / p) 로 노란 줄만 순서대로 이동
 - "구간 정보": 어떤 구간을 어떻게 잡았는지(mode, 커밋 목록, note, warning) — warning 이 있으면 자동으로 펼쳐짐
-- "JSON 저장" 으로 bundle 저장, "JSON 열기" 로 예전에 뽑은 bundle 다시 보기, ↑/↓ 또는 j/k 로 파일 이동
-- UI 는 표준 라이브러리 `http.server` 로 **127.0.0.1 에만** 뜨는 로컬 화면입니다 (외부 접속 불가, 외부 리소스 로드 없음, 요청 토큰/Host 검사).
-  포트는 `--port` (기본 8765, 사용 중이면 빈 포트 자동 선택).
+
+**LLM 리뷰 패널** (화면 아래)
+- "추가 프롬프트" 칸에 적은 내용이 기본 지시문 + diff 뒤에 붙어 전달됨
+- "이 파일 분석" / "차이 있는 파일 전체 분석"(동일한 파일은 건너뜀, 중지 가능)
+- 결과는 파일별로 표시되고 목록에 `LLM` 표시가 붙으며, 자동으로 `llm/*.md` 로 저장됨
+- LLM 호출 자체는 **훅 파일**이 담당합니다 → 아래 "LLM 연결"
+
+UI 는 표준 라이브러리 `http.server` 로 **127.0.0.1 에만** 뜨는 로컬 화면입니다 (외부 접속 불가, 외부 리소스 로드 없음, 요청 토큰/Host 검사).
+옵션: `--port`(기본 8765, 사용 중이면 빈 포트), `--browser-tab`(앱 창 대신 브라우저 탭), `--no-browser`.
+
+## LLM 연결 (llm_hook.py)
+
+`llm_hook_example.py` 를 `llm_hook.py` 로 복사해 `review()` 안에 사내 LLM 호출을 넣으면 됩니다.
+
+```python
+def review(request):
+    # request["prompt"]        기본 지시문 + 구간 경고 + 원본 diff + 대상 diff + 추가 프롬프트
+    # request["extra_prompt"]  UI 에 적은 추가 프롬프트만
+    # request["source_patch"], request["target_patch"], request["pair"], ... (예시 파일 참고)
+    return "LLM 응답 텍스트"
+```
+
+- 찾는 순서: `--llm-hook 경로` → 환경변수 `CROSSREVIEW_LLM_HOOK` → 실행한 폴더의 `llm_hook.py` → `crossreview.pyz` 옆의 `llm_hook.py`
+- 호출할 때마다 파일을 새로 읽으므로 훅을 고친 뒤 프로그램을 다시 띄울 필요가 없습니다.
+- 훅이 없으면 "이 파일 분석" 을 눌렀을 때 **전송될 프롬프트 미리보기**가 표시됩니다.
+
+## 저장되는 파일
+
+UI 에서 추출하면 `저장 폴더/실행시각/` 아래에, CLI 는 `--out-dir DIR` 을 주면 DIR 에 저장합니다.
+
+```
+crossreview_out/20250101_093000/
+  bundle.json                    전체 데이터 (LLM 결과 포함, "JSON 열기" 로 다시 볼 수 있음)
+  report.html                    브라우저로 바로 열리는 리포트
+  diffs/0001_app.c.source.diff   파일별 원본 diff
+  diffs/0001_app.c.target.diff   파일별 대상 diff
+  llm/0001_app.c.md              LLM 결과 (추가 프롬프트 + 응답)
+```
 
 ## 사용법 (CLI)
 
@@ -166,8 +211,11 @@ crossreview/
   pairing.py   src/dst 파일 짝짓기, 동일 여부/유사도
   bundle.py    bundle 조립, LLM 용 헬퍼
   cli.py       CLI
-  server.py    로컬 UI 서버, HTML 리포트 출력
+  server.py    로컬 UI 서버 (추출 / 레포·브랜치 목록 / LLM 호출 API)
+  export.py    파일 저장 (bundle.json, report.html, diffs/, llm/)
+  llm.py       프롬프트 조립, llm_hook.py 호출
   ui.html      UI 화면 (단일 파일, 외부 리소스 없음)
+llm_hook_example.py   LLM 훅 예시
 build.py       단일 파일(dist/crossreview.pyz) 빌드
 tests/         임시 git 레포로 위 시나리오를 실제 검증
 ```

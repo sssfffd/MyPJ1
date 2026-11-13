@@ -77,6 +77,12 @@ def build_parser():
                    help="로컬 UI 실행 (인자 없이 실행해도 UI 가 뜬다)")
     p.add_argument("--port", type=int, default=8765, help="UI 포트 (기본 8765, 127.0.0.1 전용)")
     p.add_argument("--no-browser", action="store_true", help="UI 실행 시 브라우저를 열지 않음")
+    p.add_argument("--out-dir", metavar="DIR",
+                   help="결과 한 벌 저장: bundle.json, report.html, diffs/*.diff "
+                        "(UI 에서는 저장 폴더의 기본값, 기본 ./crossreview_out)")
+    p.add_argument("--llm-hook", metavar="FILE", help="LLM 훅 파일 (기본: ./llm_hook.py)")
+    p.add_argument("--browser-tab", action="store_true",
+                   help="UI 를 앱 창 대신 기본 브라우저 탭으로 열기")
     p.add_argument("--strict", action="store_true", help="warning 이 있으면 exit code 2")
     p.add_argument("--git", default="git", help="git 실행 파일 경로")
     return p
@@ -100,7 +106,8 @@ def main(argv=None):
         args.ui = True                      # 인자 없이 실행(더블클릭) -> UI
     if args.ui and not has_spec:
         from .server import serve
-        return serve(args.port, not args.no_browser, git=args.git)
+        return serve(args.port, not args.no_browser, git=args.git, hook=args.llm_hook,
+                     out_base=args.out_dir, as_tab=args.browser_tab)
     maps = []
     for m in args.path_map:
         if "=" not in m:
@@ -125,7 +132,7 @@ def main(argv=None):
 
     if args.output:
         _dump(bundle, args.output)
-    elif not (args.html or args.ui):
+    elif not (args.html or args.ui or args.out_dir):
         text = json.dumps(bundle, ensure_ascii=False, indent=2)
         getattr(sys.stdout, "buffer", sys.stdout).write((text + "\n").encode("utf-8"))
 
@@ -153,10 +160,15 @@ def main(argv=None):
     sm = bundle["summary"]
     print("[pairs] paired=%d (identical=%d) source_only=%d target_only=%d" % (
         sm["paired"], sm["identical"], sm["source_only"], sm["target_only"]), file=err)
+    if args.out_dir:
+        from .export import save_run
+        bundle["saved_to"] = save_run(bundle, args.out_dir)
+        print("[saved] %s" % bundle["saved_to"], file=sys.stderr)
     if args.html:
-        from .server import write_html
+        from .export import write_html
         write_html(bundle, args.html)
     if args.ui:
         from .server import serve
-        return serve(args.port, not args.no_browser, initial_bundle=bundle, git=args.git)
+        return serve(args.port, not args.no_browser, initial_bundle=bundle, git=args.git,
+                     hook=args.llm_hook, as_tab=args.browser_tab)
     return 2 if (args.strict and sm["warnings"]) else 0
