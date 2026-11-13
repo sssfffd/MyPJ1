@@ -189,7 +189,9 @@ class Runs(object):
 
 class _Server(ThreadingMixIn, HTTPServer):
     daemon_threads = True
-    allow_reuse_address = False
+    # 종료 직후 재시작 시 TIME_WAIT 로 포트를 못 여는 문제 방지.
+    # Windows 의 SO_REUSEADDR 는 다른 프로세스가 같은 포트를 가로챌 수 있게 하므로 켜지 않는다.
+    allow_reuse_address = os.name != "nt"
 
     # --- 서버 모드: 접근 가능한 경로를 --repo-root 아래로 제한
     def check_path(self, path):
@@ -402,7 +404,8 @@ def serve(port=8765, open_browser=True, initial_bundle=None, git="git", hook=Non
         httpd = _Server((host, port), _Handler)
     except OSError:
         if not local:
-            raise ValueError("포트 %d 를 열 수 없습니다." % port)
+            raise ValueError("포트 %d 를 열 수 없습니다. 이미 실행 중인지 확인하거나 "
+                             "crossreview.ini 의 port 를 바꾸세요." % port)
         httpd = _Server((host, 0), _Handler)             # 포트 사용 중이면 빈 포트
     scheme = "http"
     if cert:
