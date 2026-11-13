@@ -67,12 +67,30 @@ UI 는 표준 라이브러리 `http.server` 로 **127.0.0.1 에만** 뜨는 로�
 같은 프로그램을 서버 한 대에 띄워 두고 여러 명이 브라우저로 접속해 쓸 수 있습니다. 설치는 여전히 `crossreview.pyz` 하나입니다.
 
 ```bash
-python crossreview.pyz --host 0.0.0.0 --port 8765 \
-    --repo-root /srv/repos \          # 이 폴더 아래의 레포만 선택/추출 가능 (필수, 반복 가능)
-    --auth team:비밀번호 \             # 접속 시 로그인 요구 (권장)
-    --cert server.pem --key server.key \   # HTTPS (권장, 없으면 평문 HTTP)
-    --out-dir /srv/crossreview_out      # 결과 저장 폴더
+python crossreview.pyz --lan --repo-root D:\repos --auth team:비밀번호
 ```
+
+실행하면 접속 주소가 출력됩니다. 다른 PC 의 브라우저에서 "다른 PC 에서" 주소를 열면 됩니다.
+
+```
+crossreview 웹 서버 실행 중 (종료: Ctrl+C 또는 이 창 닫기)
+  이 PC 에서      : http://127.0.0.1:8765/
+  다른 PC 에서    : http://192.168.0.15:8765/
+```
+
+| 옵션 | 의미 |
+|---|---|
+| `--lan` | 다른 PC 에서 IP 주소로 접속 허용 (`--host 0.0.0.0` 과 같음. 특정 IP 로만 받으려면 `--host IP`) |
+| `--repo-root DIR` | 이 폴더 아래의 레포만 선택/추출 가능 (**필수**, 반복 가능) |
+| `--auth 사용자:비밀번호` | 접속 시 로그인 요구 (권장) |
+| `--cert FILE --key FILE` | HTTPS (권장, 없으면 평문 HTTP) |
+| `--port N` | 포트 (기본 8765) |
+| `--out-dir DIR` | 결과 저장 폴더 |
+
+접속이 안 되면: ① 서버 PC 방화벽에서 해당 TCP 포트 인바운드 허용
+(Windows 는 처음 실행 시 뜨는 "액세스 허용" 창에서 허용, 또는 관리자 권한으로
+`netsh advfirewall firewall add rule name="crossreview" dir=in action=allow protocol=TCP localport=8765`)
+② 두 PC 가 같은 사내망인지 ③ 주소의 IP 가 서버 PC 의 것인지(`ipconfig`) 확인하세요.
 
 - 레포는 **서버에 있는 clone** 을 씁니다. `--repo-root` 아래에 대상 레포들을 clone 해 두고 주기적으로 `git fetch` 하세요 (예: cron / 작업 스케줄러). 화면의 폴더 선택도 이 폴더 밖으로는 나갈 수 없습니다.
 - 추출할 때마다 실행 ID 가 붙은 폴더에 저장되고 주소가 `…/?run=실행ID` 로 바뀝니다. **"링크 복사"** 로 동료에게 그대로 공유할 수 있고, "이전 결과 열기…" 목록에서 다시 열 수 있습니다. 결과는 실행별로 분리되어 여러 명이 동시에 써도 섞이지 않습니다.

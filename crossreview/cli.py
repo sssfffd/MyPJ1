@@ -26,7 +26,8 @@ UI:
   python -m crossreview ... --html r.html   서버 없이 열 수 있는 HTML 리포트
 
 웹 서버 모드 (서버 한 대에 띄우고 팀이 브라우저로 접속):
-  python -m crossreview --host 0.0.0.0 --port 8765 --repo-root /srv/repos --auth team:비밀번호
+  python -m crossreview --lan --repo-root /srv/repos --auth team:비밀번호
+  -> 실행하면 다른 PC 에서 접속할 주소(http://IP:포트/)가 출력된다
 
 예시:
   # 원본 PR(v1) 과 횡전개 PR(v2) 비교 - 서로 다른 레포
@@ -87,6 +88,8 @@ def build_parser():
     w = p.add_argument_group("웹 서버 모드 (팀이 주소로 접속)")
     w.add_argument("--host", default="127.0.0.1", metavar="ADDR",
                    help="접속을 받을 주소. 기본 127.0.0.1(내 PC 전용), 0.0.0.0 이면 다른 PC 에서 접속 가능")
+    w.add_argument("--lan", action="store_true",
+                   help="다른 PC 에서 IP 주소로 접속 허용 (--host 0.0.0.0 과 동일)")
     w.add_argument("--repo-root", action="append", metavar="DIR",
                    help="서버에서 접근을 허용할 폴더 (이 아래의 레포만 선택 가능, 반복 가능)")
     w.add_argument("--auth", metavar="USER:PASS", help="접속 시 로그인 요구 (HTTP Basic)")
@@ -113,6 +116,8 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = build_parser().parse_args(argv)
     has_spec = any(getattr(args, "%s_%s" % (p, k)) for p in ("src", "dst") for k in SIDE_KEYS)
+    if args.lan and args.host == "127.0.0.1":
+        args.host = "0.0.0.0"
     if not argv or args.host != "127.0.0.1":
         args.ui = True                      # 인자 없이 실행(더블클릭) 또는 --host -> UI
 

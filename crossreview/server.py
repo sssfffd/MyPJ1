@@ -358,6 +358,29 @@ def _open_window(url, as_tab):
         pass
 
 
+def lan_addresses():
+    """이 PC 의 IP 주소 목록 (다른 PC 에서 접속할 때 쓸 주소)."""
+    found = []
+    try:                                   # 기본 경로로 나가는 인터페이스의 IP (실제 패킷은 보내지 않는다)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("10.255.255.255", 1))
+            found.append(s.getsockname()[0])
+        finally:
+            s.close()
+    except OSError:
+        pass
+    try:
+        found += socket.gethostbyname_ex(socket.gethostname())[2]
+    except OSError:
+        pass
+    out = []
+    for ip in found:
+        if ip not in out and not ip.startswith("127.") and ip != "0.0.0.0":
+            out.append(ip)
+    return out
+
+
 def serve(port=8765, open_browser=True, initial_bundle=None, git="git", hook=None,
           out_base=None, as_tab=False, host="127.0.0.1", roots=None, auth=None,
           cert=None, key=None):
@@ -397,9 +420,20 @@ def serve(port=8765, open_browser=True, initial_bundle=None, git="git", hook=Non
     httpd.initial_run = httpd.runs.create(initial_bundle)["run_id"] if initial_bundle else None
 
     err = sys.stderr
-    shown = "127.0.0.1" if local else (socket.gethostname() if host in ("0.0.0.0", "::") else host)
-    url = "%s://%s:%d/" % (scheme, shown, httpd.server_address[1])
-    print("crossreview UI: %s   (종료: Ctrl+C 또는 이 창 닫기)" % url, file=err)
+    port = httpd.server_address[1]
+    if local:
+        url = "%s://127.0.0.1:%d/" % (scheme, port)
+        print("crossreview UI: %s   (종료: Ctrl+C 또는 이 창 닫기)" % url, file=err)
+    else:
+        hosts = lan_addresses() if host in ("0.0.0.0", "::") else [host]
+        url = "%s://127.0.0.1:%d/" % (scheme, port)
+        print("crossreview 웹 서버 실행 중 (종료: Ctrl+C 또는 이 창 닫기)", file=err)
+        print("  이 PC 에서      : %s" % url, file=err)
+        for h in hosts:
+            print("  다른 PC 에서    : %s://%s:%d/" % (scheme, h, port), file=err)
+        if not hosts:
+            print("  IP 주소를 찾지 못했습니다. ipconfig(Windows) / ip addr(Linux) 로 확인하세요.", file=err)
+        print("  접속이 안 되면 이 PC 방화벽에서 TCP %d 포트 인바운드를 허용하세요." % port, file=err)
     print("저장 폴더: %s" % httpd.runs.out_base, file=err)
     print("LLM 훅: %s" % (llm.find_hook(hook) or "없음 (llm_hook.py 를 만들면 연결됩니다)"), file=err)
     if not local:
@@ -409,7 +443,7 @@ def serve(port=8765, open_browser=True, initial_bundle=None, git="git", hook=Non
         if not cert:
             print("WARNING: HTTPS(--cert/--key)가 아니므로 통신이 암호화되지 않습니다.", file=err)
     err.flush()
-    if open_browser and local:
+    if open_browser:
         _open_window(url, as_tab)
     try:
         httpd.serve_forever()
