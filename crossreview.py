@@ -2,10 +2,13 @@
 """
 crossreview - 횡전개 코드 리뷰 도구 (내부 로직 전부가 이 파일 하나에 있다)
 
-    python crossreview.py          웹 화면 실행 (브라우저가 자동으로 열림)
-    python crossreview.py build    exe 빌드 (PyInstaller 필요) -> dist/crossreview(.exe)
+    python crossreview.py          실행 (브라우저 화면이 자동으로 열림)
+    python crossreview.py build    실행 파일 빌드 -> crossreview.pyz
+                                   (PyInstaller 가 설치된 PC 면 dist/crossreview.exe 도 함께)
 
-화면은 같은 폴더의 ui.html 이다. 표준 라이브러리와 git 만 사용한다.
+    python crossreview.pyz         빌드된 실행 파일 실행 (Windows 는 더블클릭)
+
+화면은 같은 폴더의 ui.html 이다 (빌드하면 실행 파일 안에 포함). 표준 라이브러리와 git 만 사용한다.
 
 비교 방식
     원본 레포의 [기준 브랜치 ~ 작업 브랜치] 변경과 대상 레포의 [기준 브랜치 ~ 작업 브랜치] 변경을
@@ -30,11 +33,15 @@ import ipaddress
 import json
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import webbrowser
+import zipapp
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
@@ -46,10 +53,10 @@ HOST = "0.0.0.0"     # "0.0.0.0": 다른 PC 에서 http://이PC의IP:포트/ 로
 PORT = 8765          # 사용 중이면 다음 번호를 자동으로 쓴다
 OPEN_BROWSER = True  # 실행 시 브라우저 자동 열기
 
-# 실행 파일(또는 이 스크립트)이 있는 폴더. settings.json 과 결과 폴더가 여기에 생긴다.
-APP_DIR = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__))
-# ui.html 이 있는 폴더 (exe 로 빌드하면 exe 내부에 포함된다)
-UI_DIR = getattr(sys, "_MEIPASS", APP_DIR)
+# 실행 파일(crossreview.pyz / .exe) 또는 이 스크립트가 있는 폴더. settings.json 과 결과 폴더가 여기에 생긴다.
+_HERE = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__))
+PYZ = _HERE if os.path.isfile(_HERE) else None      # crossreview.pyz 안에서 실행 중이면 그 파일 경로
+APP_DIR = os.path.dirname(PYZ) if PYZ else _HERE
 SETTINGS_FILE = os.path.join(APP_DIR, "settings.json")
 
 # 화면의 ⚙ 설정에서 바꿀 수 있는 값 (settings.json 에 저장, 이 PC 에서 접속했을 때만 변경 가능)
@@ -543,9 +550,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.split("?")[0] != "/":
             return self._send(404, b"not found", "text/plain")
         try:
-            with open(os.path.join(UI_DIR, "ui.html"), "rb") as fp:
-                self._send(200, fp.read(), "text/html; charset=utf-8")
-        except OSError:
+            self._send(200, read_ui(), "text/html; charset=utf-8")
+        except (OSError, KeyError):
             self._send(500, u"ui.html 을 찾을 수 없습니다.".encode("utf-8"), "text/plain; charset=utf-8")
 
     def do_POST(self):
@@ -614,15 +620,38 @@ def serve():
     return 0
 
 
+def read_ui():
+    """ui.html 내용. 스크립트 옆 / crossreview.pyz 내부 / exe 내부 순으로 찾는다."""
+    if PYZ:
+        with zipfile.ZipFile(PYZ) as z:
+            return z.read("ui.html")
+    with open(os.path.join(getattr(sys, "_MEIPASS", APP_DIR), "ui.html"), "rb") as fp:
+        return fp.read()
+
+
 def build():
-    """exe 빌드: PyInstaller 로 crossreview.py + ui.html 을 실행 파일 하나로 묶는다.
-    Windows 에서 실행하면 dist/crossreview.exe 가 만들어진다 (빌드한 OS 용 실행 파일이 나온다)."""
+    """실행 파일 빌드.
+        crossreview.pyz       항상 만든다 (표준 라이브러리 zipapp). Python 이 있는 PC 면 어디서든 실행된다.
+        dist/crossreview.exe  PyInstaller 가 설치돼 있으면 함께 만든다 (Python 없는 PC 용, 빌드한 OS 용으로 나온다).
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    target = os.path.join(here, "crossreview.pyz")
+    stage = tempfile.mkdtemp(prefix="crossreview-build-")
+    try:
+        for name in ("crossreview.py", "ui.html"):
+            shutil.copy(os.path.join(here, name), os.path.join(stage, name))
+        with open(os.path.join(stage, "__main__.py"), "w") as fp:
+            fp.write("import sys\nimport crossreview\nsys.exit(crossreview.main())\n")
+        zipapp.create_archive(stage, target, interpreter="/usr/bin/env python3", compressed=True)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+    print(u"완료: %s" % target)
+
     try:
         import PyInstaller.__main__ as pyinstaller
     except ImportError:
-        print(u"PyInstaller 가 없습니다. 빌드하는 PC 에서만 설치하면 됩니다:  pip install pyinstaller")
-        return 1
-    here = os.path.dirname(os.path.abspath(__file__))
+        print(u"(PyInstaller 가 없어 exe 는 건너뜀. 필요하면 빌드하는 PC 에서: pip install pyinstaller)")
+        return 0
     pyinstaller.run([os.path.join(here, "crossreview.py"), "--onefile", "--name", "crossreview",
                      "--add-data", os.path.join(here, "ui.html") + os.pathsep + ".",
                      "--distpath", os.path.join(here, "dist"),
@@ -633,7 +662,11 @@ def build():
     return 0
 
 
-if __name__ == "__main__":
+def main():
     if sys.stdout and hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="replace")
-    sys.exit(build() if sys.argv[1:] == ["build"] else serve())
+    return build() if sys.argv[1:] == ["build"] else serve()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

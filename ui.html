@@ -6,18 +6,18 @@
 <title>crossreview</title>
 <style>
 :root{
-  --bg:#f3f5f8;--panel:#fff;--panel2:#f8f9fb;--line:#d8dde5;--text:#1d232b;--mute:#6a7482;--accent:#2f6feb;--accent-t:#fff;
+  --bg:#f2f4f7;--panel:#fff;--panel2:#f7f8fa;--line:#dde2e9;--text:#1b2129;--mute:#6b7583;--accent:#2f6feb;--accent-t:#fff;--accent-bg:#eaf1ff;
   --add:#dcf5e3;--add-t:#0b5a22;--del:#ffe2e2;--del-t:#9b1c22;--hunk:#e9eef7;
   --miss:#ffeaa8;--miss-bar:#f59f00;--miss-t:#5b3d00;--x:#ff7a1a;--x-t:#fff;
-  --warn:#fff3cd;--warn-t:#7a5200;--ok:#1a7f37;--ok-bg:#e3f6e8;--bad:#cf222e;--sel:#e3edff;
-  --shadow:0 8px 30px rgba(15,25,40,.18);
+  --warn:#fff3cd;--warn-t:#7a5200;--ok:#1a7f37;--ok-bg:#e3f6e8;--bad:#cf222e;--bad-bg:#ffe4e4;--sel:#e3edff;
+  --shadow:0 10px 34px rgba(15,25,40,.18);--card:0 1px 2px rgba(15,25,40,.06),0 2px 10px rgba(15,25,40,.04);
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#0f1318;--panel:#171c23;--panel2:#1b2129;--line:#2c333d;--text:#dfe5ec;--mute:#8b96a5;--accent:#5b95ff;--accent-t:#fff;
+  --bg:#0e1217;--panel:#161b22;--panel2:#1b2129;--line:#2b323c;--text:#e0e6ed;--mute:#8d98a7;--accent:#5b95ff;--accent-t:#fff;--accent-bg:#1a2742;
   --add:#123a22;--add-t:#8be9a8;--del:#4a1a1d;--del-t:#ffa3a3;--hunk:#1d2530;
   --miss:#4d3b08;--miss-bar:#f5b000;--miss-t:#ffe08a;--x:#ff8a2a;--x-t:#1a1000;
-  --warn:#3a2f0b;--warn-t:#f0cf6b;--ok:#56d364;--ok-bg:#12301c;--bad:#ff7b72;--sel:#1b2a44;
-  --shadow:0 8px 30px rgba(0,0,0,.5);
+  --warn:#3a2f0b;--warn-t:#f0cf6b;--ok:#56d364;--ok-bg:#12301c;--bad:#ff7b72;--bad-bg:#3d1618;--sel:#1b2a44;
+  --shadow:0 10px 34px rgba(0,0,0,.5);--card:none;
 }}
 *{box-sizing:border-box}
 [hidden]{display:none !important}
@@ -28,13 +28,13 @@ button{background:var(--panel);border:1px solid var(--line);border-radius:6px;pa
 button:hover:not(:disabled){border-color:var(--accent)}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-t);font-weight:600}
 button.ghost{border-color:transparent;background:transparent;color:var(--mute)}
-button.ghost:hover{color:var(--text)}
+button.ghost:hover:not(:disabled){color:var(--text);background:var(--panel2)}
 button.sm{padding:2px 9px;font-size:12px}
-button:disabled{opacity:.5;cursor:default}
+button:disabled{opacity:.45;cursor:default}
 input,select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%;min-width:0}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 textarea{resize:vertical;line-height:1.5}
-.mono,textarea.mono{font-family:Consolas,"D2Coding",ui-monospace,monospace;font-size:12px}
+.mono{font-family:Consolas,"D2Coding",ui-monospace,monospace;font-size:12px}
 .mute{color:var(--mute)}
 .sp{flex:1}
 .chip{display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:11px;padding:0 9px;font-size:12px;color:var(--mute);white-space:nowrap;line-height:20px}
@@ -45,35 +45,42 @@ textarea{resize:vertical;line-height:1.5}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* ---------- 상단 */
+/* ============ 상단 */
 header{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
-header h1{font-size:15px;margin:0;letter-spacing:.2px;white-space:nowrap}
-#summary{display:flex;gap:4px;flex-wrap:nowrap}
-#folder{max-width:260px;overflow:hidden;text-overflow:ellipsis;cursor:pointer;direction:rtl}
-header h1 span{color:var(--mute);font-weight:400;font-size:12px;margin-left:6px}
+header h1{font-size:15px;margin:0;white-space:nowrap}
 #runs{width:auto;max-width:300px}
 
-/* ---------- 비교 대상 선택 */
-#picker{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);align-items:end}
+/* ============ 비교 대상 선택 */
+#picker{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--line);align-items:stretch}
 .side{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1.2fr);gap:6px 8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel2)}
 .side .title{grid-column:1/-1;display:flex;gap:8px;align-items:baseline}
-.side .title b{font-size:13px}
 .side label{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--mute);min-width:0}
 .side .why{grid-column:1/-1;font-size:11px;color:var(--mute);min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#btnCompare{height:58px;padding:0 26px;font-size:15px}
+#picker .go{display:flex;flex-direction:column;gap:6px;justify-content:center}
+#btnCompare{padding:12px 28px;font-size:15px}
+/* 결과가 있을 때 접힌 한 줄 요약 */
+#pickBar{display:flex;align-items:center;gap:12px;padding:7px 14px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px;overflow:hidden}
+#pickBar .s{display:flex;gap:6px;align-items:center;min-width:0;white-space:nowrap}
+#pickBar .s b{font-size:12px}
+#pickBar .arrow{color:var(--mute)}
 #error{background:var(--del);color:var(--del-t);padding:8px 14px;white-space:pre-wrap;border-bottom:1px solid var(--line);display:flex;gap:10px}
 #error span{flex:1}
 
-/* ---------- 본문 */
+/* ============ 본문 */
 main{flex:1;display:flex;min-height:0}
 #empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:var(--mute);text-align:center;padding:30px}
 #empty .steps{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
-#empty .step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;width:210px;text-align:left}
+#empty .step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;width:220px;text-align:left;box-shadow:var(--card)}
 #empty .step b{display:block;color:var(--text);margin-bottom:4px}
 #empty .num{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--accent-t);text-align:center;line-height:20px;font-size:12px;margin-right:6px}
 
-aside{width:260px;min-width:200px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column}
-.filters{padding:8px;border-bottom:1px solid var(--line);display:flex;gap:4px;flex-wrap:wrap}
+/* 왼쪽 파일 목록 */
+aside{width:270px;min-width:200px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column}
+#reportItem{margin:8px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600}
+#reportItem:hover{border-color:var(--accent)}
+#reportItem.sel{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+#reportItem .cnt{margin-left:auto;font-weight:400;font-size:12px;color:var(--mute)}
+.filters{padding:0 8px 8px;border-bottom:1px solid var(--line);display:flex;gap:4px;flex-wrap:wrap}
 .filters button{padding:1px 9px;font-size:12px;border-radius:11px}
 .filters button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-t)}
 #list{overflow:auto;flex:1}
@@ -90,20 +97,63 @@ aside{width:260px;min-width:200px;border-right:1px solid var(--line);background:
 .b-same{color:var(--ok);border:1px solid var(--ok)}
 .b-diff{color:var(--miss-t);background:var(--miss)}
 .b-only{color:#fff;background:var(--bad)}
-.b-ai{color:var(--accent);border:1px solid var(--accent)}
+.rv{width:18px;text-align:center;font-size:13px;color:var(--mute)}
+.rv.done{color:var(--accent)}
 .commits{border-top:1px solid var(--line);max-height:30%;overflow:auto;padding:6px 10px;font-size:12px}
 .commits summary{cursor:pointer;color:var(--mute)}
 .commits ul{margin:4px 0 6px;padding-left:16px}
 .commits li{overflow-wrap:anywhere}
 
-#viewer{flex:1;display:flex;flex-direction:column;min-width:0}
-#vhead{padding:6px 12px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:38px}
+/* 가운데: 리뷰(메인) + diff(아래) */
+#center{flex:1;display:flex;flex-direction:column;min-width:0}
+#review{flex:0 0 58%;display:flex;flex-direction:column;min-height:120px;background:var(--bg)}
+#rvHead{display:flex;align-items:center;gap:8px;padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+#rvTitle{font-size:16px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:50%}
+#rvSub{font-size:12px}
+#rvAsk{display:flex;gap:8px;align-items:center;padding:8px 18px;background:var(--panel);border-bottom:1px solid var(--line)}
+#extra{height:34px;min-height:34px;resize:none}
+#extra:focus{height:70px}
+#rvBody{flex:1;overflow:auto;padding:18px}
+.doc{max-width:980px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px 28px;box-shadow:var(--card);font-size:14px;line-height:1.75}
+.md h2,.md h3,.md h4{margin:1.1em 0 .4em;line-height:1.35}
+.md h2{font-size:18px}.md h3{font-size:16px}.md h4{font-size:14px}
+.md > :first-child,.md > .meta + *{margin-top:0}
+.md p{margin:.45em 0}
+.md ul,.md ol{margin:.4em 0;padding-left:1.5em}
+.md li{margin:.2em 0}
+.md code{font-family:Consolas,"D2Coding",ui-monospace,monospace;font-size:12.5px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.md pre{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow:auto;line-height:1.5}
+.md pre code{border:0;padding:0;background:none}
+.md blockquote{margin:.5em 0;padding:2px 12px;border-left:3px solid var(--line);color:var(--mute)}
+.doc .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--mute);font-size:12px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:14px}
+.doc.prompt{white-space:pre-wrap;font-family:Consolas,"D2Coding",ui-monospace,monospace;font-size:12px;line-height:1.55}
+.callout{max-width:980px;margin:0 auto;text-align:center;color:var(--mute);padding:50px 20px;border:1px dashed var(--line);border-radius:10px;background:var(--panel)}
+.callout b{display:block;font-size:15px;color:var(--text);margin-bottom:6px}
+.callout button{margin-top:14px}
+/* 전체 보고서 */
+.rep{max-width:980px;margin:0 auto 14px}
+.rep .sec{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;box-shadow:var(--card);overflow:hidden}
+.rep .sh{display:flex;gap:8px;align-items:center;padding:10px 16px;background:var(--panel2);border-bottom:1px solid var(--line);cursor:pointer}
+.rep .sh:hover b{color:var(--accent)}
+.rep .sh b{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rep .sb{padding:6px 22px 14px;font-size:14px;line-height:1.75}
+.rep .sb.empty{color:var(--mute);font-size:13px;padding:12px 22px}
+.rep .stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.rep .stat div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;box-shadow:var(--card)}
+.rep .stat b{display:block;font-size:22px}
+.rep .stat span{color:var(--mute);font-size:12px}
+
+#hgrip{height:6px;cursor:row-resize;background:var(--line);flex:0 0 auto}
+#hgrip:hover{background:var(--accent)}
+#diffArea{flex:1;display:flex;flex-direction:column;min-height:80px}
+#vhead{padding:5px 12px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#vhead b{font-size:12px;color:var(--mute);font-weight:600}
 .legend{color:var(--mute);font-size:12px;display:flex;gap:10px;white-space:nowrap}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:3px;vertical-align:-1px}
 #panes{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
 .pane{display:flex;flex-direction:column;min-width:0;min-height:0}
 .pane+.pane{border-left:1px solid var(--line)}
-.ptitle{padding:5px 10px;background:var(--panel2);border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;min-height:30px}
+.ptitle{padding:4px 10px;background:var(--panel2);border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;min-height:28px}
 .ptitle .path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;direction:rtl;text-align:left}
 .ptitle .st{color:var(--mute);font-size:12px;white-space:nowrap}
 .code{flex:1;overflow:auto;background:var(--panel)}
@@ -118,49 +168,31 @@ aside{width:260px;min-width:200px;border-right:1px solid var(--line);background:
 .code tr.miss td.n{background:var(--miss-bar);color:#000;opacity:1}
 .code tr.cur td.c{outline:2px solid var(--accent);outline-offset:-2px}
 .code span.x{background:var(--x);color:var(--x-t);border-radius:2px;padding:0 1px}
-.none{padding:40px 20px;color:var(--mute);text-align:center}
+.none{padding:30px 20px;color:var(--mute);text-align:center}
+body.report #hgrip,body.report #diffArea{display:none}
+body.report #review{flex:1}
 
-/* ---------- LLM 패널 */
-#grip{width:5px;cursor:col-resize;background:var(--line);opacity:.6}
-#grip:hover{background:var(--accent);opacity:1}
-#llm{width:400px;min-width:300px;max-width:70vw;background:var(--panel);display:flex;flex-direction:column;min-height:0}
-#llm .head{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
-#llm .head b{font-size:14px}
-#llm .body{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:10px 12px}
-#llm .box{display:flex;flex-direction:column;gap:4px}
-#llm .box .lbl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
-#prompt{min-height:150px;height:190px}
-#extra{min-height:46px;height:60px}
-#llm .actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-#answerBox{border:1px solid var(--line);border-radius:8px;background:var(--panel2);display:flex;flex-direction:column;min-height:180px;flex:1}
-#answerHead{display:flex;gap:6px;align-items:center;padding:5px 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--mute)}
-#answerHead .f{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#answer{margin:0;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.6 "Segoe UI","Malgun Gothic",system-ui,sans-serif;flex:1}
-#answer.mono{font-family:Consolas,"D2Coding",ui-monospace,monospace;font-size:12px}
-#answer:empty::before{content:"분석 결과가 여기에 표시됩니다.";color:var(--mute)}
-body.no-llm #llm,body.no-llm #grip{display:none}
+/* ============ 창 */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(640px,92vw);max-height:90vh;box-shadow:var(--shadow);padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.modal.wide .box{width:min(900px,94vw);height:min(760px,90vh)}
+.modal h2{margin:0;font-size:16px}
+.modal label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute)}
+.modal .row{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+#promptText{flex:1;resize:none;font-family:Consolas,"D2Coding",ui-monospace,monospace;font-size:12.5px;line-height:1.55}
 
-/* ---------- 설정 창 */
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9}
-#modal .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(620px,92vw);box-shadow:var(--shadow);padding:18px 20px;display:flex;flex-direction:column;gap:12px}
-#modal h2{margin:0;font-size:16px}
-#modal label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute)}
-#modal .row{display:flex;gap:8px;justify-content:flex-end;align-items:center}
-
-@media (max-width:1300px){header h1 span{display:none}#folder{max-width:140px}}
-@media (max-width:1100px){#picker{grid-template-columns:1fr}#btnCompare{height:40px}#llm{width:320px}}
-@media (max-width:800px){aside{width:180px;min-width:150px}#panes{grid-template-columns:1fr}}
+@media (max-width:1100px){#picker{grid-template-columns:1fr}.rep .stat{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:800px){aside{width:180px;min-width:150px}#panes{grid-template-columns:1fr}#rvTitle{max-width:100%}}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>crossreview<span>횡전개 코드 리뷰</span></h1>
-  <span id="summary"></span>
+  <h1>crossreview</h1>
+  <span class="mute" style="font-size:12px">횡전개 코드 리뷰</span>
   <span class="sp"></span>
-  <span id="folder" class="chip" hidden></span>
   <select id="runs" title="이전에 비교한 결과 다시 보기"><option value="">이전 결과…</option></select>
-  <button id="btnLlmToggle" class="ghost" title="LLM 패널 열기/닫기">LLM 패널</button>
+  <button id="btnPrompt" class="ghost" title="LLM 에 보낼 프롬프트 편집">✎ 프롬프트</button>
   <button id="btnSettings" class="ghost" title="설정">⚙ 설정</button>
 </header>
 
@@ -179,21 +211,33 @@ body.no-llm #llm,body.no-llm #grip{display:none}
     <label>기준 브랜치<select class="base"></select></label>
     <div class="why"></div>
   </div>
-  <button id="btnCompare" class="primary">비교</button>
+  <div class="go">
+    <button id="btnCompare" class="primary">비교</button>
+    <button id="btnPickClose" class="sm ghost" hidden>접기</button>
+  </div>
+</section>
+<section id="pickBar" hidden>
+  <span class="s"><b>원본</b><span id="pbS"></span></span>
+  <span class="arrow">↔</span>
+  <span class="s"><b>대상</b><span id="pbT"></span></span>
+  <span class="sp"></span>
+  <span id="pbSum"></span>
+  <button class="sm" id="btnPickOpen">비교 대상 변경</button>
 </section>
 <div id="error" hidden><span></span><button class="sm ghost" id="btnErrClose">닫기</button></div>
 
 <main>
   <div id="empty">
     <div class="steps">
-      <div class="step"><span class="num">1</span><b>레포 선택</b>원본과 대상의 레포를 고르면 브랜치가 자동으로 선택됩니다.</div>
-      <div class="step"><span class="num">2</span><b>비교</b>기준 브랜치에서 갈라진 뒤의 변경 전체를 양쪽에서 뽑아 파일별로 짝지어 보여줍니다.</div>
-      <div class="step"><span class="num">3</span><b>LLM 리뷰</b>오른쪽 패널의 프롬프트로 파일별 또는 전체를 LLM 에 분석시킵니다.</div>
+      <div class="step"><span class="num">1</span><b>레포 선택</b>원본과 대상 레포를 고르면 브랜치는 자동으로 선택됩니다.</div>
+      <div class="step"><span class="num">2</span><b>비교</b>기준 브랜치에서 갈라진 뒤의 변경을 양쪽에서 뽑아 파일별로 짝짓습니다.</div>
+      <div class="step"><span class="num">3</span><b>리뷰</b>LLM 이 파일마다 동일하게 개발됐는지 리뷰합니다. 결과가 화면 가운데에 나옵니다.</div>
     </div>
     <div id="emptyNote"></div>
   </div>
 
   <aside id="aside" hidden>
+    <div id="reportItem" title="모든 파일의 리뷰 결과를 한 번에 보기">📋 전체 리뷰 보고서<span class="cnt" id="repCnt"></span></div>
     <div class="filters" id="filters">
       <button data-f="all" class="on">전체</button>
       <button data-f="diff">차이</button>
@@ -204,55 +248,59 @@ body.no-llm #llm,body.no-llm #grip{display:none}
     <div class="commits" id="commits"></div>
   </aside>
 
-  <section id="viewer" hidden>
-    <div id="vhead">
-      <span id="vsum" class="chip"></span>
-      <button class="sm" id="btnPrev" title="이전 차이 (p)">▲</button>
-      <button class="sm" id="btnNext" title="다음 차이 (n)">▼ 다음 차이</button>
-      <span class="sp"></span>
-      <span class="legend">
-        <span><i style="background:var(--add)"></i>추가</span>
-        <span><i style="background:var(--del)"></i>삭제</span>
-        <span><i style="background:var(--miss);box-shadow:inset 3px 0 0 var(--miss-bar)"></i>반대쪽에 없음</span>
-        <span><i style="background:var(--x)"></i>달라진 글자</span>
-      </span>
-    </div>
-    <div id="panes">
-      <div class="pane"><div class="ptitle" id="tS"></div><div class="code" id="cS"></div></div>
-      <div class="pane"><div class="ptitle" id="tT"></div><div class="code" id="cT"></div></div>
-    </div>
-  </section>
-
-  <div id="grip" title="드래그해서 너비 조절"></div>
-  <section id="llm">
-    <div class="head"><b>LLM 리뷰</b><span class="sp"></span><button class="sm ghost" id="btnLlmClose" title="닫기">✕</button></div>
-    <div class="body">
-      <div class="box">
-        <div class="lbl">프롬프트<span class="sp"></span><button class="sm ghost" id="btnPromptReset">기본값으로</button></div>
-        <textarea id="prompt" class="mono" spellcheck="false"></textarea>
-        <div class="mute" style="font-size:11px">{file} {source_diff} {target_diff} {extra} 자리에 값이 채워집니다. 수정한 내용은 자동 저장됩니다.</div>
+  <section id="center" hidden>
+    <!-- 코드 리뷰 결과 (메인) -->
+    <div id="review">
+      <div id="rvHead">
+        <span id="rvTitle"></span>
+        <span id="rvKind"></span>
+        <span id="rvSub" class="mute"></span>
+        <span class="sp"></span>
+        <button class="sm ghost" id="btnShowPrompt" disabled>보낸 프롬프트</button>
+        <button class="sm ghost" id="btnCopy" disabled>복사</button>
       </div>
-      <div class="box">
-        <div class="lbl">추가 요청 <span>(선택, 프롬프트의 {extra} 자리)</span></div>
-        <textarea id="extra" placeholder="예) v2 는 로깅 API 가 다르니 log_* 차이는 무시하고 예외 처리 누락만 봐줘"></textarea>
-      </div>
-      <div class="actions">
-        <button class="primary" id="btnAskOne" disabled>이 파일 분석</button>
-        <button id="btnAskAll" disabled>차이 있는 파일 모두</button>
+      <div id="rvAsk">
+        <textarea id="extra" placeholder="추가 요청 (선택) — 예) v2 는 로깅 API 가 다르니 log_* 차이는 무시하고 예외 처리 누락만 봐줘"></textarea>
+        <button class="primary" id="btnAskOne" disabled>이 파일 리뷰</button>
+        <button id="btnAskAll" disabled>차이 있는 파일 모두 리뷰</button>
         <button id="btnStop" hidden>중지</button>
-        <span id="llmStatus" class="mute"></span>
       </div>
-      <div id="answerBox">
-        <div id="answerHead"><span class="f" id="answerFile">파일을 선택하세요</span>
-          <button class="sm ghost" id="btnShowPrompt" disabled>보낸 프롬프트</button>
-          <button class="sm ghost" id="btnCopy" disabled>복사</button></div>
-        <pre id="answer"></pre>
+      <div id="rvBody"></div>
+    </div>
+    <div id="hgrip" title="드래그해서 높이 조절"></div>
+    <!-- diff 나란히 보기 -->
+    <div id="diffArea">
+      <div id="vhead">
+        <b>변경 코드</b>
+        <span id="vsum" class="chip"></span>
+        <button class="sm" id="btnPrev" title="이전 차이 (p)">▲</button>
+        <button class="sm" id="btnNext" title="다음 차이 (n)">▼ 다음 차이</button>
+        <span class="sp"></span>
+        <span class="legend">
+          <span><i style="background:var(--add)"></i>추가</span>
+          <span><i style="background:var(--del)"></i>삭제</span>
+          <span><i style="background:var(--miss);box-shadow:inset 3px 0 0 var(--miss-bar)"></i>반대쪽에 없음</span>
+          <span><i style="background:var(--x)"></i>달라진 글자</span>
+        </span>
+      </div>
+      <div id="panes">
+        <div class="pane"><div class="ptitle" id="tS"></div><div class="code" id="cS"></div></div>
+        <div class="pane"><div class="ptitle" id="tT"></div><div class="code" id="cT"></div></div>
       </div>
     </div>
   </section>
 </main>
 
-<div id="modal" hidden>
+<div class="modal wide" id="promptModal" hidden>
+  <div class="box">
+    <h2>프롬프트</h2>
+    <div class="mute" style="font-size:12px">LLM 에 보낼 프롬프트입니다. <b>{file}</b> 파일 경로, <b>{source_diff}</b> 원본 변경, <b>{target_diff}</b> 대상 변경, <b>{extra}</b> 추가 요청 칸의 내용이 채워집니다. 이 브라우저에 저장됩니다.</div>
+    <textarea id="promptText" spellcheck="false"></textarea>
+    <div class="row"><button class="ghost" id="btnPromptReset">기본값으로</button><span class="sp"></span><button id="btnPromptCancel">취소</button><button class="primary" id="btnPromptSave">저장</button></div>
+  </div>
+</div>
+
+<div class="modal" id="setModal" hidden>
   <div class="box">
     <h2>설정</h2>
     <label>레포 폴더 (한 줄에 하나, 이 폴더 아래의 git 레포가 목록에 나옵니다)
@@ -268,9 +316,10 @@ body.no-llm #llm,body.no-llm #grip{display:none}
 "use strict";
 // ============================================================ 공통
 var $ = function (id) { return document.getElementById(id); };
-var S = {                       // 화면 상태
-  init: null,                   // 서버 설정 / 레포 목록
-  result: null,                 // 비교 결과 (crossreview.py compare() 의 반환값)
+var REPORT = -2;                 // S.sel 이 이 값이면 '전체 리뷰 보고서'
+var S = {
+  init: null,                    // 서버 설정 / 레포 목록 (/api/init)
+  result: null,                  // 비교 결과 (crossreview.py compare() 반환값, result.json 과 같음)
   sel: -1, filter: "all", visible: [], busy: false, stop: false, showPrompt: false
 };
 function el(tag, cls, text) {
@@ -285,7 +334,7 @@ function api(name, body) {
     .then(function (r) { if (!r.ok) throw new Error("서버 오류 " + r.status); return r.json(); })
     .then(function (d) { if (d && d.error) throw new Error(d.error); return d; });
 }
-function store(key, val) {                     // 브라우저에 저장 (지난번 선택, 프롬프트 등)
+function store(key, val) {
   try {
     if (val === undefined) return JSON.parse(localStorage.getItem("crossreview." + key));
     localStorage.setItem("crossreview." + key, JSON.stringify(val));
@@ -293,13 +342,54 @@ function store(key, val) {                     // 브라우저에 저장 (지난
 }
 function showError(msg) { $("error").hidden = !msg; $("error").firstChild.textContent = msg || ""; }
 $("btnErrClose").onclick = function () { showError(""); };
-function shortRepo(path) {                     // 레포 폴더 기준 상대 경로
+function shortRepo(path) {
   var roots = (S.init && S.init.settings.repo_roots) || [];
   for (var i = 0; i < roots.length; i++) {
     var r = roots[i].replace(/[\\/]+$/, "");
     if (path.indexOf(r) === 0 && path.length > r.length) return path.slice(r.length + 1);
   }
-  return path;
+  return path.split(/[\\/]/).pop();
+}
+function copyText(t) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+  var ta = el("textarea"); ta.value = t; document.body.appendChild(ta); ta.select();
+  document.execCommand("copy"); ta.remove();
+}
+
+// 간단한 마크다운 표시 (제목, 목록, 코드, 굵게, 인용). HTML 은 해석하지 않는다.
+function inline(parent, text) {
+  text.split(/(`[^`]+`|\*\*[^*]+\*\*)/).forEach(function (part) {
+    if (!part) return;
+    if (part[0] === "`" && part.length > 1 && part[part.length - 1] === "`") parent.appendChild(el("code", "", part.slice(1, -1)));
+    else if (part.indexOf("**") === 0 && part.length > 4) parent.appendChild(el("strong", "", part.slice(2, -2)));
+    else parent.appendChild(document.createTextNode(part));
+  });
+}
+function markdown(text) {
+  var root = document.createDocumentFragment(), lines = String(text || "").replace(/\r/g, "").split("\n");
+  var list = null, para = null, code = null;
+  function close() { list = null; para = null; }
+  lines.forEach(function (line) {
+    if (code) {
+      if (/^\s*```/.test(line)) { code = null; return; }
+      code.textContent += (code.textContent ? "\n" : "") + line; return;
+    }
+    if (/^\s*```/.test(line)) { close(); var pre = el("pre"); code = el("code"); pre.appendChild(code); root.appendChild(pre); return; }
+    var m;
+    if (!line.trim()) { close(); return; }
+    if ((m = line.match(/^(#{1,4})\s+(.*)$/))) { close(); var h = el("h" + Math.min(4, m[1].length + 1)); inline(h, m[2]); root.appendChild(h); return; }
+    if ((m = line.match(/^>\s?(.*)$/))) { close(); var q = el("blockquote"); inline(q, m[1]); root.appendChild(q); return; }
+    if ((m = line.match(/^\s*([-*•]|\d+[.)])\s+(.*)$/))) {
+      var ordered = /\d/.test(m[1]);
+      if (!list || (list.tagName === "OL") !== ordered) { para = null; list = el(ordered ? "ol" : "ul"); root.appendChild(list); }
+      var li = el("li"); inline(li, m[2]); list.appendChild(li); return;
+    }
+    if (list && /^\s{2,}/.test(line)) { var last = list.lastChild; last.appendChild(document.createElement("br")); inline(last, line.trim()); return; }
+    list = null;
+    if (!para) { para = el("p"); root.appendChild(para); } else para.appendChild(document.createElement("br"));
+    inline(para, line);
+  });
+  return root;
 }
 
 // ============================================================ 1. 비교 대상 선택
@@ -311,8 +401,7 @@ function fillRepos() {
     sel.appendChild(new Option(S.init.repos.length ? "레포 선택" : "레포 없음 — ⚙ 설정에서 레포 폴더를 지정하세요", ""));
     S.init.repos.forEach(function (r) { var o = new Option(shortRepo(r), r); o.title = r; sel.appendChild(o); });
     sel.value = S.init.repos.indexOf(last) >= 0 ? last : "";
-    if (sel.value) loadBranches(side);
-    else { fillBranches(side, null); }
+    if (sel.value) loadBranches(side); else fillBranches(side, null);
   });
 }
 function fillBranches(side, d, pick) {
@@ -338,7 +427,7 @@ function loadBranches(side) {
   why.innerHTML = '<span class="spin"></span> 브랜치 읽는 중…';
   api("branches", { repo: repo }).then(function (d) {
     var last = store("pick." + side) || {};
-    var keep = last.repo === repo && last.head ? last : null;   // 같은 레포면 지난번 브랜치 유지
+    var keep = last.repo === repo && last.head ? last : null;
     fillBranches(side, d, keep);
     why.textContent = keep ? "지난번 선택 유지" : "자동 선택: " + d.suggest.reason;
     savePick(side);
@@ -357,47 +446,55 @@ document.querySelectorAll(".side").forEach(function (box) {
     box.querySelector(".why").textContent = "직접 선택"; savePick(side);
   };
 });
-
+function setPicker(open) {                     // 결과가 있으면 선택 영역을 한 줄로 접는다
+  $("picker").hidden = !open && !!S.result;
+  $("pickBar").hidden = open || !S.result;
+  $("btnPickClose").hidden = !S.result;
+}
+$("btnPickOpen").onclick = function () { setPicker(true); };
+$("btnPickClose").onclick = function () { setPicker(false); };
 $("btnCompare").onclick = function () {
   var src = pickOf("source"), dst = pickOf("target"), btn = this;
   if (!src.repo || !dst.repo) return showError("원본과 대상 레포를 선택하세요.");
   if (!src.head || !src.base || !dst.head || !dst.base) return showError("브랜치를 선택하세요.");
   showError(""); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 비교 중';
-  api("compare", { source: src, target: dst }).then(function (r) {
-    setResult(r); refreshRuns();
-  }).catch(function (e) { showError(e.message); })
+  api("compare", { source: src, target: dst }).then(function (r) { setResult(r); refreshRuns(); })
+    .catch(function (e) { showError(e.message); })
     .then(function () { btn.disabled = false; btn.textContent = "비교"; });
 };
 
-// ============================================================ 2. 결과 표시
+// ============================================================ 2. 결과 / 파일 목록
 function kindOf(p) { return p.kind === "source_only" || p.kind === "target_only" ? "only" : p.kind; }
+function review(i) { return S.result && S.result.llm ? S.result.llm[i] : null; }
 function setResult(r) {
-  S.result = r; S.sel = -1; S.filter = "all";
-  var has = !!r;
-  $("empty").hidden = has; $("aside").hidden = !has; $("viewer").hidden = !has;
+  S.result = r; S.filter = "all";
+  $("empty").hidden = !!r; $("aside").hidden = !r; $("center").hidden = !r;
   document.querySelectorAll("#filters button").forEach(function (b) { b.classList.toggle("on", b.dataset.f === "all"); });
-  renderSummary();
-  if (!has) return;
+  setPicker(false);
+  if (!r) return;
   if (history.replaceState) history.replaceState(null, "", "?run=" + encodeURIComponent(r.run_id));
   $("runs").value = r.run_id;
-  renderList(); renderCommits();
-  if (r.pairs.length) select(0); else { clearPanes("두 쪽 모두 변경된 파일이 없습니다."); renderLlm(); }
+  renderBar(); renderList(); renderCommits();
+  var reviewed = Object.keys(r.llm || {}).length;
+  if (reviewed) select(REPORT);                // 리뷰가 있으면 보고서부터
+  else if (r.pairs.length) select(0);
+  else { S.sel = -1; renderReview(); clearPanes("두 쪽 모두 변경된 파일이 없습니다."); }
 }
-function renderSummary() {
-  var box = $("summary"), r = S.result; box.textContent = "";
-  $("folder").hidden = !r;
-  if (!r) return;
-  var s = r.summary, add = function (label, n, cls) {
-    var c = el("span", "chip " + (n ? cls : "")); c.appendChild(document.createTextNode(label + " "));
-    c.appendChild(el("b", "", n)); box.appendChild(c);
-  };
-  add("차이", s.diff, "warn"); add("원본에만", s.source_only, "warn"); add("대상에만", s.target_only, "");
-  add("동일", s.same, "ok");
-  $("folder").textContent = "\u200e저장: " + r.folder; $("folder").title = r.folder + "\n클릭하면 경로 복사";
+function renderBar() {
+  var r = S.result, side = function (sd) { return shortRepo(sd.repo) + " · " + sd.head + " ← " + sd.base; };
+  $("pbS").textContent = side(r.source); $("pbT").textContent = side(r.target);
+  var box = $("pbSum"), s = r.summary; box.textContent = "";
+  [["차이", s.diff, "warn"], ["원본에만", s.source_only, "warn"], ["대상에만", s.target_only, ""], ["동일", s.same, "ok"]]
+    .forEach(function (x) {
+      var c = el("span", "chip " + (x[1] ? x[2] : "")); c.appendChild(document.createTextNode(x[0] + " "));
+      c.appendChild(el("b", "", x[1])); box.appendChild(c); box.appendChild(document.createTextNode(" "));
+    });
 }
-$("folder").onclick = function () { copyText(S.result.folder); };
 function renderList() {
   var box = $("list"), r = S.result; box.textContent = ""; S.visible = [];
+  var need = r.pairs.filter(function (p) { return p.kind !== "same"; }).length;
+  $("repCnt").textContent = Object.keys(r.llm || {}).length + " / " + need + " 리뷰";
+  $("reportItem").classList.toggle("sel", S.sel === REPORT);
   r.pairs.forEach(function (p, i) {
     if (S.filter !== "all" && S.filter !== kindOf(p)) return;
     S.visible.push(i);
@@ -409,8 +506,9 @@ function renderList() {
     nm.appendChild(el("div", "", "‎" + (p.source_path || p.target_path)));
     if (p.source_path && p.target_path && p.source_path !== p.target_path) nm.appendChild(el("div", "sub", "‎→ " + p.target_path));
     nm.title = [p.source_path, p.target_path].filter(Boolean).join("\n");
-    it.appendChild(badge); it.appendChild(nm);
-    if (r.llm && r.llm[i]) it.appendChild(el("span", "badge b-ai", "LLM"));
+    var rv = el("span", "rv" + (review(i) ? " done" : ""), review(i) ? "✔" : "");
+    rv.title = review(i) ? "리뷰 완료" : "";
+    it.appendChild(badge); it.appendChild(nm); it.appendChild(rv);
     it.onclick = function () { select(i); };
     box.appendChild(it);
   });
@@ -420,12 +518,10 @@ function renderCommits() {
   var box = $("commits"); box.textContent = "";
   [["source", "원본"], ["target", "대상"]].forEach(function (k) {
     var sd = S.result[k[0]], d = el("details"), sm = el("summary");
-    sm.textContent = k[1] + ": " + sd.head + " ← " + sd.base + " (커밋 " + sd.commits.length + ")";
-    sm.title = sd.repo;
+    sm.textContent = k[1] + " 커밋 " + sd.commits.length + "개"; sm.title = sd.repo;
     d.appendChild(sm);
     var ul = el("ul");
     sd.commits.forEach(function (c) { ul.appendChild(el("li", "mono", c)); });
-    if (!sd.commits.length) ul.appendChild(el("li", "mute", "커밋 없음"));
     d.appendChild(ul); box.appendChild(d);
   });
 }
@@ -435,10 +531,149 @@ $("filters").onclick = function (e) {
   this.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.f === f); });
   renderList();
 };
+$("reportItem").onclick = function () { select(REPORT); };
+function select(i) {
+  S.sel = i; S.showPrompt = false;
+  document.body.classList.toggle("report", i === REPORT);
+  $("reportItem").classList.toggle("sel", i === REPORT);
+  document.querySelectorAll(".item").forEach(function (e) { e.classList.toggle("sel", +e.dataset.i === i); });
+  renderReview();
+  if (i >= 0) renderDiff(i);
+  $("rvBody").scrollTop = 0;
+}
 
-// ============================================================ 3. diff 나란히 보기
+// ============================================================ 3. 코드 리뷰 결과 (메인)
+function pairName(i) { var p = S.result.pairs[i]; return p.source_path || p.target_path; }
+var KIND = { same: ["변경 동일", "ok"], diff: ["차이 있음", "warn"], source_only: ["원본에만 있음", "bad"], target_only: ["대상에만 있음", "bad"] };
+function kindChip(p) { var k = KIND[p.kind]; return el("span", "chip " + k[1], k[0] + (p.kind === "diff" ? " · " + Math.round(p.similarity * 100) + "%" : "")); }
+function renderReview() {
+  var r = S.result, body = $("rvBody"), i = S.sel;
+  body.textContent = ""; $("rvKind").textContent = ""; $("rvSub").textContent = "";
+  $("btnAskAll").disabled = !r || S.busy;
+  if (i === REPORT) return renderReport();
+  var rec = i >= 0 ? review(i) : null;
+  $("btnAskOne").disabled = i < 0 || S.busy;
+  $("btnAskOne").textContent = rec ? "다시 리뷰" : "이 파일 리뷰";
+  $("btnShowPrompt").disabled = $("btnCopy").disabled = !rec;
+  $("btnShowPrompt").textContent = S.showPrompt ? "리뷰 결과" : "보낸 프롬프트";
+  if (i < 0) { $("rvTitle").textContent = ""; return; }
+  var p = r.pairs[i];
+  $("rvTitle").textContent = pairName(i); $("rvTitle").title = [p.source_path, p.target_path].filter(Boolean).join(" ↔ ");
+  $("rvKind").appendChild(kindChip(p));
+  if (p.source_path && p.target_path && p.source_path !== p.target_path) $("rvSub").textContent = "↔ " + p.target_path;
+  if (!rec) {
+    var c = el("div", "callout");
+    c.appendChild(el("b", "", p.kind === "same" ? "원본과 대상의 변경 내용이 같습니다." : "아직 리뷰하지 않았습니다."));
+    c.appendChild(document.createTextNode(p.kind === "same" ? "필요하면 리뷰할 수 있습니다." : "LLM 이 원본과 대상의 변경을 비교해 리뷰합니다. 아래에서 변경 코드를 직접 볼 수도 있습니다."));
+    c.appendChild(el("br"));
+    var b = el("button", "primary", "이 파일 리뷰"); b.disabled = S.busy; b.onclick = function () { $("btnAskOne").click(); };
+    c.appendChild(b); body.appendChild(c); return;
+  }
+  var doc = el("div", "doc" + (S.showPrompt ? " prompt" : " md"));
+  var meta = el("div", "meta");
+  meta.appendChild(el("span", "", S.showPrompt ? "LLM 에 보낸 프롬프트" : "리뷰 결과"));
+  meta.appendChild(el("span", "", "· " + rec.at));
+  var f = el("span", "", "· 저장됨: " + String(rec.file || "").split(/[\\/]/).pop()); f.title = rec.file || ""; meta.appendChild(f);
+  doc.appendChild(meta);
+  if (S.showPrompt) doc.appendChild(document.createTextNode(rec.prompt));
+  else doc.appendChild(markdown(rec.answer));
+  body.appendChild(doc);
+}
+function renderReport() {
+  var r = S.result, body = $("rvBody"), wrap = el("div", "rep");
+  $("rvTitle").textContent = "전체 리뷰 보고서"; $("rvTitle").title = "";
+  $("btnAskOne").disabled = true; $("btnAskOne").textContent = "이 파일 리뷰";
+  $("btnShowPrompt").disabled = true; $("btnCopy").disabled = !Object.keys(r.llm || {}).length;
+  var stat = el("div", "stat"), s = r.summary;
+  [["차이 있음", s.diff], ["원본에만", s.source_only], ["대상에만", s.target_only], ["리뷰 완료", Object.keys(r.llm || {}).length]]
+    .forEach(function (x) { var d = el("div"); d.appendChild(el("b", "", x[1])); d.appendChild(el("span", "", x[0])); stat.appendChild(d); });
+  wrap.appendChild(stat);
+  var any = false;
+  r.pairs.forEach(function (p, i) {
+    var rec = review(i);
+    if (p.kind === "same" && !rec) return;
+    any = true;
+    var sec = el("div", "sec"), sh = el("div", "sh");
+    sh.appendChild(kindChip(p)); sh.appendChild(el("b", "", pairName(i)));
+    sh.appendChild(el("span", "sp")); sh.appendChild(el("span", "mute", rec ? rec.at : "리뷰 전"));
+    sh.title = "이 파일 보기 (변경 코드 포함)";
+    sh.onclick = function () { select(i); };
+    sec.appendChild(sh);
+    var sb = el("div", "sb" + (rec ? " md" : " empty"));
+    if (rec) sb.appendChild(markdown(rec.answer)); else sb.textContent = "아직 리뷰하지 않았습니다.";
+    sec.appendChild(sb); wrap.appendChild(sec);
+  });
+  if (!any) wrap.appendChild(el("div", "callout", "차이가 있는 파일이 없습니다."));
+  body.appendChild(wrap);
+}
+function reportText() {
+  var r = S.result, out = [];
+  r.pairs.forEach(function (p, i) { var rec = review(i); if (rec) out.push("## " + pairName(i) + "\n\n" + rec.answer); });
+  return out.join("\n\n");
+}
+function ask(i) {
+  return api("llm", { run_id: S.result.run_id, index: i, prompt: currentPrompt(), extra: $("extra").value })
+    .then(function (rec) { S.result.llm = S.result.llm || {}; S.result.llm[i] = rec; return rec; });
+}
+function busy(on, msg) {
+  S.busy = on; $("btnStop").hidden = !on;
+  var b = $("btnAskAll");
+  b.innerHTML = ""; if (on) b.appendChild(el("span", "spin")); b.appendChild(document.createTextNode(on ? " " + msg : "차이 있는 파일 모두 리뷰"));
+  renderReview();
+}
+$("btnAskOne").onclick = function () {
+  var i = S.sel; if (i < 0) return;
+  busy(true, "리뷰 중…");
+  ask(i).then(function () { busy(false); renderList(); })
+    .catch(function (e) { busy(false); showError("LLM 오류: " + e.message); });
+};
+$("btnAskAll").onclick = function () {
+  var todo = [], done = 0;
+  S.result.pairs.forEach(function (p, i) { if (p.kind !== "same") todo.push(i); });
+  if (!todo.length) return;
+  S.stop = false;
+  select(REPORT);
+  (function next() {
+    if (S.stop || !todo.length) { busy(false); renderList(); select(REPORT); return; }
+    var i = todo.shift();
+    busy(true, (done + 1) + "/" + (done + 1 + todo.length) + " 리뷰 중");
+    ask(i).then(function () { done++; renderList(); if (S.sel === REPORT) renderReview(); next(); })
+      .catch(function (e) { busy(false); showError("LLM 오류: " + e.message); renderList(); });
+  })();
+};
+$("btnStop").onclick = function () { S.stop = true; };
+$("btnShowPrompt").onclick = function () { S.showPrompt = !S.showPrompt; renderReview(); };
+$("btnCopy").onclick = function () {
+  var rec = S.sel >= 0 ? review(S.sel) : null;
+  copyText(S.sel === REPORT ? reportText() : rec ? (S.showPrompt ? rec.prompt : rec.answer) : "");
+  var b = this; b.textContent = "복사됨"; setTimeout(function () { b.textContent = "복사"; }, 1200);
+};
+$("extra").oninput = function () { store("extra", this.value); };
+(function () {                                 // 리뷰 / diff 높이 드래그
+  var grip = $("hgrip"), rv = $("review");
+  grip.onmousedown = function (e) {
+    e.preventDefault();
+    var y0 = e.clientY, h0 = rv.offsetHeight, total = $("center").offsetHeight;
+    document.onmousemove = function (m) { rv.style.flexBasis = Math.max(120, Math.min(total - 100, h0 + m.clientY - y0)) + "px"; };
+    document.onmouseup = function () { document.onmousemove = document.onmouseup = null; store("reviewH", rv.style.flexBasis); };
+  };
+  var h = store("reviewH"); if (h) rv.style.flexBasis = h;
+})();
+
+// 프롬프트 편집 창
+function currentPrompt() { return store("prompt") || (S.init && S.init.default_prompt) || ""; }
+$("btnPrompt").onclick = function () { $("promptText").value = currentPrompt(); $("promptModal").hidden = false; $("promptText").focus(); };
+$("btnPromptCancel").onclick = function () { $("promptModal").hidden = true; };
+$("btnPromptReset").onclick = function () { $("promptText").value = S.init.default_prompt; };
+$("btnPromptSave").onclick = function () {
+  var v = $("promptText").value;
+  store("prompt", v === S.init.default_prompt ? null : v);
+  $("promptModal").hidden = true;
+};
+
+// ============================================================ 4. diff 나란히 보기
 function norm(l) { return l[0] + l.slice(1).split(/\s+/).filter(Boolean).join(" "); }
-function changed(f) {                          // 추가/삭제 라인 (공백 정규화)
+function changed(f) {
   var out = [];
   if (f) f.hunks.forEach(function (h) { h.lines.forEach(function (l) {
     if ((l[0] === "+" || l[0] === "-") && l.slice(1).trim()) out.push(l);
@@ -471,8 +706,7 @@ function renderPane(titleEl, codeEl, f, other, label) {
   if (!f) { codeEl.appendChild(el("div", "none", label + "에는 이 파일의 변경이 없습니다.")); return 0; }
   var path = el("span", "path", "‎" + f.path); path.title = f.path;
   titleEl.appendChild(path);
-  titleEl.appendChild(el("span", "st", (STATUS[f.status] || f.status) + (f.old_path ? " ← " + f.old_path : "")
-                                       + "  +" + f.additions + " −" + f.deletions));
+  titleEl.appendChild(el("span", "st", (STATUS[f.status] || f.status) + (f.old_path ? " ← " + f.old_path : "") + "  +" + f.additions + " −" + f.deletions));
   if (f.binary) { codeEl.appendChild(el("div", "none", "바이너리 파일")); return 0; }
   if (!f.hunks.length) { codeEl.appendChild(el("div", "none", "내용 변경 없음")); return 0; }
   var otherSet = setOf(changed(other)), mine = setOf(changed(f));
@@ -506,25 +740,19 @@ function renderPane(titleEl, codeEl, f, other, label) {
 }
 function clearPanes(msg) {
   ["tS", "tT", "cS", "cT"].forEach(function (id) { $(id).textContent = ""; });
-  $("cS").appendChild(el("div", "none", msg || ""));
+  if (msg) $("cS").appendChild(el("div", "none", msg));
   $("vsum").textContent = ""; $("vsum").className = "chip";
 }
-function select(i) {
-  S.sel = i; S.showPrompt = false;
-  document.querySelectorAll(".item").forEach(function (e) { e.classList.toggle("sel", +e.dataset.i === i); });
+function renderDiff(i) {
   var p = S.result.pairs[i], s = fileOf("source", p.source_path), t = fileOf("target", p.target_path);
   var m1 = renderPane($("tS"), $("cS"), s, t, "원본"), m2 = renderPane($("tT"), $("cT"), t, s, "대상");
   var v = $("vsum");
-  v.className = "chip " + (p.kind === "same" ? "ok" : "warn");
-  v.textContent = p.kind === "same" ? "변경 내용 동일"
-                : p.kind === "source_only" ? "원본에만 있는 변경 — 이식 누락 확인"
-                : p.kind === "target_only" ? "대상에만 있는 변경 — 추가 수정 확인"
-                : "유사도 " + Math.round(p.similarity * 100) + "% · 원본에만 " + m1 + "줄 · 대상에만 " + m2 + "줄";
+  v.className = "chip " + (m1 + m2 ? "warn" : "ok");
+  v.textContent = m1 + m2 ? "원본에만 " + m1 + "줄 · 대상에만 " + m2 + "줄" : "변경 라인 동일";
   $("btnPrev").disabled = $("btnNext").disabled = !(m1 + m2);
   $("cS").scrollTop = $("cT").scrollTop = 0;
-  renderLlm();
 }
-function jump(dir) {                           // 다음/이전 노란 줄로
+function jump(dir) {
   var rows = Array.prototype.slice.call(document.querySelectorAll("#cS tr.miss, #cT tr.miss"));
   if (!rows.length) return;
   rows.sort(function (a, b) { return a.offsetTop - b.offsetTop; });
@@ -549,7 +777,8 @@ $("btnPrev").onclick = function () { jump(-1); };
   });
 })();
 document.addEventListener("keydown", function (e) {
-  if (!S.result || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || !$("modal").hidden) return;
+  if (!S.result || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  if (!$("promptModal").hidden || !$("setModal").hidden) return;
   if (e.key === "n") return jump(1);
   if (e.key === "p") return jump(-1);
   var d = e.key === "ArrowDown" || e.key === "j" ? 1 : e.key === "ArrowUp" || e.key === "k" ? -1 : 0;
@@ -559,72 +788,6 @@ document.addEventListener("keydown", function (e) {
   select(S.visible[at < 0 ? 0 : Math.max(0, Math.min(S.visible.length - 1, at + d))]);
   var it = document.querySelector(".item.sel"); if (it) it.scrollIntoView({ block: "nearest" });
 });
-
-// ============================================================ 4. LLM 패널
-function pairName(i) { var p = S.result.pairs[i]; return p.source_path || p.target_path; }
-function renderLlm() {
-  var r = S.result, has = r && S.sel >= 0, rec = has && r.llm ? r.llm[S.sel] : null;
-  $("btnAskOne").disabled = !has || S.busy;
-  $("btnAskAll").disabled = !r || S.busy;
-  $("btnShowPrompt").disabled = $("btnCopy").disabled = !rec;
-  $("answerFile").textContent = has ? pairName(S.sel) + (rec ? " · " + rec.at : "") : "파일을 선택하세요";
-  $("answerFile").title = rec ? rec.file : "";
-  $("btnShowPrompt").textContent = S.showPrompt ? "결과 보기" : "보낸 프롬프트";
-  $("answer").className = S.showPrompt ? "mono" : "";
-  $("answer").textContent = rec ? (S.showPrompt ? rec.prompt : rec.answer) : "";
-}
-function ask(i) {
-  return api("llm", { run_id: S.result.run_id, index: i, prompt: $("prompt").value, extra: $("extra").value })
-    .then(function (rec) { S.result.llm = S.result.llm || {}; S.result.llm[i] = rec; return rec; });
-}
-function busy(on, msg) {
-  S.busy = on; $("btnStop").hidden = !on;
-  $("llmStatus").innerHTML = ""; if (on) $("llmStatus").appendChild(el("span", "spin"));
-  $("llmStatus").appendChild(document.createTextNode(msg ? " " + msg : ""));
-  renderLlm();
-}
-$("btnAskOne").onclick = function () {
-  var i = S.sel; busy(true, "분석 중…");
-  ask(i).then(function () { busy(false, "완료"); renderList(); })
-    .catch(function (e) { busy(false, ""); showError("LLM 오류: " + e.message); });
-};
-$("btnAskAll").onclick = function () {
-  var todo = [], done = 0;
-  S.result.pairs.forEach(function (p, i) { if (p.kind !== "same") todo.push(i); });
-  if (!todo.length) { $("llmStatus").textContent = "차이 있는 파일이 없습니다."; return; }
-  S.stop = false;
-  (function next() {
-    if (S.stop || !todo.length) { busy(false, (S.stop ? "중지 · " : "완료 · ") + done + "개 분석"); renderList(); return; }
-    var i = todo.shift();
-    select(i); busy(true, (done + 1) + "/" + (done + 1 + todo.length) + " " + pairName(i));
-    ask(i).then(function () { done++; renderList(); next(); })
-      .catch(function (e) { busy(false, ""); showError("LLM 오류: " + e.message); renderList(); });
-  })();
-};
-$("btnStop").onclick = function () { S.stop = true; };
-$("btnShowPrompt").onclick = function () { S.showPrompt = !S.showPrompt; renderLlm(); };
-$("btnCopy").onclick = function () { copyText($("answer").textContent); };
-$("btnPromptReset").onclick = function () { $("prompt").value = S.init.default_prompt; store("prompt", null); };
-$("prompt").oninput = function () { store("prompt", this.value); };
-$("extra").oninput = function () { store("extra", this.value); };
-function setLlmOpen(open) { document.body.classList.toggle("no-llm", !open); store("llmOpen", open); }
-$("btnLlmToggle").onclick = function () { setLlmOpen(document.body.classList.contains("no-llm")); };
-$("btnLlmClose").onclick = function () { setLlmOpen(false); };
-(function () {                                 // 패널 너비 드래그
-  var grip = $("grip"), panel = $("llm");
-  grip.onmousedown = function (e) {
-    e.preventDefault();
-    var x0 = e.clientX, w0 = panel.offsetWidth;
-    document.onmousemove = function (m) { panel.style.width = (w0 + x0 - m.clientX) + "px"; };
-    document.onmouseup = function () { document.onmousemove = document.onmouseup = null; store("llmWidth", panel.offsetWidth); };
-  };
-  var w = store("llmWidth"); if (w) panel.style.width = w + "px";
-})();
-function copyText(t) {
-  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
-  var ta = el("textarea"); ta.value = t; document.body.appendChild(ta); ta.select();
-  document.execCommand("copy"); ta.remove();
-}
 
 // ============================================================ 5. 이전 결과 / 설정
 function fillRuns(runs) {
@@ -642,20 +805,22 @@ $("runs").onchange = function () {
   api("result", { run_id: this.value }).then(setResult).catch(function (e) { showError(e.message); });
 };
 $("btnSettings").onclick = function () {
-  var s = S.init.settings;
+  var s = S.init.settings, can = S.init.can_edit_settings;
   $("setRoots").value = s.repo_roots.join("\n"); $("setOut").value = s.output_dir;
-  var can = S.init.can_edit_settings;
   $("setRoots").readOnly = $("setOut").readOnly = !can; $("btnSetSave").hidden = !can;
   $("setNote").textContent = can ? "저장하면 settings.json 에 기록되고 레포 목록을 다시 읽습니다."
                                  : "설정은 프로그램을 실행한 PC 에서만 바꿀 수 있습니다.";
-  $("modal").hidden = false;
+  $("setModal").hidden = false;
 };
-$("btnSetCancel").onclick = function () { $("modal").hidden = true; };
+$("btnSetCancel").onclick = function () { $("setModal").hidden = true; };
 $("btnSetSave").onclick = function () {
   api("settings", { repo_roots: $("setRoots").value.split("\n"), output_dir: $("setOut").value })
-    .then(function () { $("modal").hidden = true; return start(); })
+    .then(function () { $("setModal").hidden = true; return start(); })
     .catch(function (e) { $("setNote").textContent = e.message; });
 };
+document.querySelectorAll(".modal").forEach(function (m) {
+  m.addEventListener("mousedown", function (e) { if (e.target === m) m.hidden = true; });
+});
 
 // ============================================================ 시작
 function start() {
@@ -664,14 +829,12 @@ function start() {
     $("emptyNote").textContent = d.repos.length ? "레포 " + d.repos.length + "개를 찾았습니다."
       : "레포 폴더(" + d.settings.repo_roots.join(", ") + ")에서 git 레포를 찾지 못했습니다. ⚙ 설정에서 바꾸세요.";
     fillRepos(); fillRuns(d.runs);
-    var m = location.search.match(/[?&]run=([^&]+)/);           // ?run=ID 로 열면 그 결과를 보여준다
+    var m = location.search.match(/[?&]run=([^&]+)/);
     if (m && !S.result) api("result", { run_id: decodeURIComponent(m[1]) }).then(setResult).catch(function () {});
   }).catch(function (e) { showError(e.message); });
 }
-$("prompt").value = store("prompt") || "";
 $("extra").value = store("extra") || "";
-setLlmOpen(store("llmOpen") !== false);
-start().then(function () { if (!$("prompt").value && S.init) $("prompt").value = S.init.default_prompt; });
+start();
 </script>
 </body>
 </html>
